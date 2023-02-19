@@ -3,7 +3,8 @@
 
 ```
 conda create -n vertebral-seg python=3.9
-pip install -r requirements.txt
+pip install -r requirements.txt # for linux
+pip install -r requirements-win.txt # for windows
 ```
 
 ## Prepare data
