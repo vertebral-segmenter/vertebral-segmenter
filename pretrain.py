@@ -237,10 +237,17 @@ def main():
             print("Tag 'swin_vit' found in state dict - fixing!")
             for key in list(state_dict.keys()):
                 state_dict[key.replace("swin_vit", "swinViT")] = state_dict.pop(key)
+        for key in list(state_dict.keys()):
+            if "contrastive_head" in key or "rotation_head" in key:
+                # the heads are not part of swinViT, should not prefix it with swinViT
+                state_dict[key.lstrip("swinViT.")] = state_dict.pop(key)
+            if "swinViT.convTrans3d" in key:
+                # The convTrans3d is renamed to conv afterwards
+                state_dict[key.replace("swinViT.convTrans3d", "conv")] = state_dict.pop(key)
         # We now load model weights, setting param `strict` to False, i.e.:
         # this load the encoder weights (Swin-ViT, SSL pre-trained), but leaves
         # the decoder weights untouched (CNN UNet decoder).
-        model.load_state_dict(state_dict, strict=True)
+        model.load_state_dict(state_dict, strict=False)
         print("Using pretrained self-supervised Swin UNETR backbone weights !")
 
 
