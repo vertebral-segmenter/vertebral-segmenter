@@ -24,13 +24,13 @@ class AsymmetricFocalLoss(nn.Module):
         cross_entropy = -y_true * torch.log(y_pred)
 
         # Calculate losses separately for each class, only suppressing background class
-        back_ce = torch.pow(1 - y_pred[:,0,:,:], self.gamma) * cross_entropy[:,0,:,:]
+        back_ce = torch.pow(1 - y_pred[:,0,:,:,:], self.gamma) * cross_entropy[:,0,:,:,:]
         back_ce = (1 - self.delta) * back_ce
 
-        fore_ce = cross_entropy[:,1,:,:]
+        fore_ce = cross_entropy[:,1,:,:,:]
         fore_ce = self.delta * fore_ce
 
-        loss = torch.mean(torch.sum(torch.stack([back_ce, fore_ce], dim=3), dim=3))
+        loss = torch.mean(torch.sum(torch.stack([back_ce, fore_ce], dim=4), dim=4))
 
         return loss
 
@@ -59,7 +59,7 @@ class AsymmetricFocalTverskyLoss(nn.Module):
         y_pred = torch.clamp(y_pred, self.epsilon, 1. - self.epsilon)
 
         # Calculate true positives (tp), false negatives (fn) and false positives (fp)
-        axis = [2, 3]
+        axis = [2, 3, 4]
         tp = torch.sum(y_true * y_pred, dim=axis)
         fn = torch.sum(y_true * (1-y_pred), dim=axis)
         fp = torch.sum((1-y_true) * y_pred, dim=axis)
