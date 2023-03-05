@@ -100,8 +100,6 @@ class AsymmetricUnifiedFocalLoss(nn.Module):
         # Obtain Asymmetric Focal loss
         asymmetric_fl = AsymmetricFocalLoss(delta=self.delta, gamma=self.gamma)(y_pred, y_true)
 
-        print(asymmetric_fl, asymmetric_ftl)
-
         # Return weighted sum of Asymmetrical Focal loss and Asymmetric Focal Tversky loss
         if self.weight is not None:
             return (self.weight * asymmetric_ftl) + ((1-self.weight) * asymmetric_fl)
