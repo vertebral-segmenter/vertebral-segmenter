@@ -30,7 +30,7 @@ class AsymmetricFocalLoss(nn.Module):
         fore_ce = cross_entropy[:,1,:,:]
         fore_ce = self.delta * fore_ce
 
-        loss = torch.mean(torch.sum(torch.stack([back_ce, fore_ce], dim=4), dim=4))
+        loss = torch.mean(torch.sum(torch.stack([back_ce, fore_ce], dim=3), dim=3))
 
         return loss
 
@@ -100,8 +100,11 @@ class AsymmetricUnifiedFocalLoss(nn.Module):
         # Obtain Asymmetric Focal loss
         asymmetric_fl = AsymmetricFocalLoss(delta=self.delta, gamma=self.gamma)(y_pred, y_true)
 
+        print(asymmetric_fl, asymmetric_ftl)
+
         # Return weighted sum of Asymmetrical Focal loss and Asymmetric Focal Tversky loss
         if self.weight is not None:
             return (self.weight * asymmetric_ftl) + ((1-self.weight) * asymmetric_fl)
         else:
             return asymmetric_ftl + asymmetric_fl
+
