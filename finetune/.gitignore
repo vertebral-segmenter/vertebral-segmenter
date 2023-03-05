@@ -127,11 +127,3 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-pretrain/pretrained_models/*
-pretrain/runs/**
-finetune/pretrained_models/*
-finetune/runs/**
-pretrain/jsons/*.json
-finetune/outputs/**
-finetune/dataset/**
-data/**
