@@ -47,14 +47,24 @@ python -m torch.distributed.launch --nproc_per_node=8 --master_port=11223 pretra
 
 ## Finetune
 
+### Data preparation
+
+Get data by running `scripts/load_synapse_data.py`
+
+unzip `dataset/Abdomen/rawdata.zip` into `finetune/dataset`, so that this path (`finetune/dataset`) contains `Testing` and `Training` folder.
+
+Prepare dataset json by running `scripts/create_finetune_dataset_json.py`
+
+Reference: https://github.com/Project-MONAI/research-contributions/tree/main/SwinUNETR/BTCV#data-preparation
+
 Default parameters
 
 ```
-python finetune/main.py --feature_size=32 --batch_size=1 --logdir=unetr_test --fold=0 --optim_lr=1e-4 --lrschedule=warmup_cosine --infer_overlap=0.5 --save_checkpoint --data_dir=/dataset/dataset0/
+python finetune.py --batch_size=1 --logdir=unetr_test --optim_lr=1e-4 --lrschedule=warmup_cosine --infer_overlap=0.5 --feature_size=48 --use_ssl_pretrained --roi_x=96 --roi_y=96 --roi_z=96 --save_checkpoint --data_dir=./ --json_list=finetune/jsons/dataset.json --use_ssl_pretrained 
 ```
 
 With self-supervised encoder weights
 
 ```
-python main.py --json_list=<json-path> --data_dir=<data-path> --feature_size=48 --use_ssl_pretrained --roi_x=96 --roi_y=96 --roi_z=96  --use_checkpoint --batch_size=<batch-size> --max_epochs=<total-num-epochs> --save_checkpoint
+python finetune.py --json_list=<json-path> --data_dir=<data-path> --feature_size=48 --use_ssl_pretrained --roi_x=96 --roi_y=96 --roi_z=96  --use_checkpoint --batch_size=<batch-size> --max_epochs=<total-num-epochs> --save_checkpoint
 ```

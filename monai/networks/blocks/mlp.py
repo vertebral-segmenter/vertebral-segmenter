@@ -66,8 +66,8 @@ class MLPBlock(nn.Module):
             raise ValueError(f"dropout_mode should be one of {SUPPORTED_DROPOUT_MODE}")
 
     def forward(self, x):
-        x = self.fn(self.linear1(x))
+        x = self.fn(self.fc1(x))
         x = self.drop1(x)
-        x = self.linear2(x)
+        x = self.fc2(x)
         x = self.drop2(x)
         return x
