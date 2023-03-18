@@ -29,6 +29,9 @@ The ROI x y z specifies the patch size
 #### Training on top of previous pretrained weight
 ```
 python pretrain.py --use_checkpoint --batch_size=1 --num_steps=100000 --lrdecay --eval_num=500 --logdir=0 --lr=6e-7 --use_ssl_pretrained
+
+# Distributed version
+python -m torch.distributed.launch --nproc_per_node=2 --master_port=11223 pretrain.py --batch_size=1 --num_steps=100000 --lrdecay --eval_num=500 --lr=6e-7 --decay=0.1 --use_ssl_pretrained
 ```
 
 #### Resume training

@@ -21,7 +21,7 @@ def main():
         torch.save(state, checkpoint_dir)
 
     def train(args, global_step, train_loader, val_best, scaler):
-
+        print("Start training")
         model.train()
         loss_train = []
         loss_train_recon = []
@@ -172,7 +172,7 @@ def main():
     parser.add_argument("--opt", default="adamw", type=str, help="optimization algorithm")
     parser.add_argument("--lr_schedule", default="warmup_cosine", type=str)
     parser.add_argument("--resume", default=None, type=str, help="resume training")
-    parser.add_argument("--local_rank", type=int, default=0, help="local rank")
+    parser.add_argument("--local-rank", type=int, default=0, help="local rank")
     parser.add_argument("--grad_clip", action="store_true", help="gradient clip")
     parser.add_argument("--noamp", action="store_true", help="do NOT use amp for training")
     parser.add_argument("--dist-url", default="env://", help="url used to set up distributed training")
@@ -191,7 +191,6 @@ def main():
     args.device = "cuda:0"
     args.world_size = 1
     args.rank = 0
-
     if args.distributed:
         args.device = "cuda:%d" % args.local_rank
         torch.cuda.set_device(args.local_rank)
