@@ -3,8 +3,14 @@
 
 ```
 conda create -n vertebral python=3.9
+conda activate vertebral
+
 pip install -r requirements.txt # for linux
 pip install -r requirements-win.txt # for windows
+
+# Validate cuda installation
+python -c "import torch; print(torch.cuda.device_count());"
+# Should see output 2
 ```
 
 ## Prepare data
