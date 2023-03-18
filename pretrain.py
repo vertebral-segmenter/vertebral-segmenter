@@ -273,11 +273,11 @@ def main():
     if args.distributed:
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
         model = DistributedDataParallel(model, device_ids=[args.local_rank])
+    train_loader, test_loader = get_loader(args)
     # Save model inputs for inspection
     save_model_inputs = False
     if save_model_inputs:
         nifty_saver = NiftiSaver('./pretrain/model_inputs')
-        train_loader, test_loader = get_loader(args)
         for step, batch in enumerate(train_loader):
             if 3 <= step <= 10:
                 nifty_saver.save_batch(batch["image"])
