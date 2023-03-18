@@ -130,6 +130,7 @@ dmypy.json
 pretrain/pretrained_models/*
 pretrain/runs/**
 pretrain/data/**
+pretrain/model_inputs/**
 finetune/pretrained_models/*
 finetune/runs/**
 pretrain/jsons/*.json

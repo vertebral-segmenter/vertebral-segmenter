@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from unified_loss import AsymmetricUnifiedFocalLoss
+from monai.losses.unified_loss import AsymmetricUnifiedFocalLoss
 
 
 class CustomLoss(nn.Module):
