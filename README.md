@@ -18,6 +18,8 @@ python scripts/create_pretrain_dataset_json.py
 
 Modify `pretrain/utils/data_utils.py` to load the json and data from the right path.
 
+Get previous pretrained weights `model_swinvit.pt` from [here](https://github.com/Project-MONAI/research-contributions/tree/6ca48250bcffc455482caf8328d6c8b149145257/SwinUNETR/Pretrain). Store it in `pretrain/pretrained_models/model_swinvit.pt`
+
 ## Pretrain
 
 ### Single GPU Training From Scratch
@@ -29,16 +31,16 @@ The ROI x y z specifies the patch size
 python pretrain.py --use_checkpoint --batch_size=1 --num_steps=100000 --lrdecay --eval_num=500 --logdir=0 --lr=6e-7 --use_ssl_pretrained
 ```
 
-#### Pretrain from scratch
-
-```
-python pretrain.py --use_checkpoint --batch_size=1 --num_steps=100000 --lrdecay --eval_num=500 --logdir=0 --lr=6e-6 --roi_x=<Roi_x> --roi_y=<Roi_y> --roi_z=<Roi_z>
-```
-
 #### Resume training
 
 ```
 python pretrain.py --use_checkpoint --batch_size=1 --num_steps=100000 --lrdecay --eval_num=500 --logdir=0 --lr=6e-6 --resume pretrain\pretrained_models\model_swinvit.pt
+```
+
+#### Pretrain from scratch
+
+```
+python pretrain.py --use_checkpoint --batch_size=1 --num_steps=100000 --lrdecay --eval_num=500 --logdir=0 --lr=6e-6 --roi_x=<Roi_x> --roi_y=<Roi_y> --roi_z=<Roi_z>
 ```
 
 ### Multi GPU Distributed Training
