@@ -18,6 +18,8 @@ from monai.transforms import (
 
 def get_loader(args):
     splits2 = "/dataset.json"
+    # splits2 = "/dataset_small.json"
+    # splits2 = "/dataset_TCIAcovid19_0.json"
     list_dir = "pretrain/jsons"
     jsonlist2 = list_dir + splits2
     datadir2 = "./"

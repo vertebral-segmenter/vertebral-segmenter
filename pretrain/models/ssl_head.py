@@ -6,7 +6,7 @@ from monai.utils import ensure_tuple_rep
 
 
 class SSLHead(nn.Module):
-    def __init__(self, args, upsample="large_kernel_deconv", dim=768):
+    def __init__(self, args, upsample="vae", dim=768):
         super(SSLHead, self).__init__()
         patch_size = ensure_tuple_rep(2, args.spatial_dims)
         window_size = ensure_tuple_rep(7, args.spatial_dims)
