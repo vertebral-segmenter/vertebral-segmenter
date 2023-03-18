@@ -2,20 +2,32 @@
 ## Env Setup
 
 ```
-conda create -n vertebral-seg python=3.9
+conda create -n vertebral python=3.9
 pip install -r requirements.txt # for linux
 pip install -r requirements-win.txt # for windows
 ```
 
 ## Prepare data
 
-After data and corresponding json is prepared using the script in: `scripts/create_pretrain_dataset_json.py`, modify `pretrain/utils/data_utils.py` to load the json and data from the right path.
+```sh
+# Copy rat data into prtraining data folder
+cp -r /home/smsmt/Rat_mCT_new/. ./pretrain/data/
+# Prepare rat data json
+python scripts/create_pretrain_dataset_json.py
+```
+
+Modify `pretrain/utils/data_utils.py` to load the json and data from the right path.
 
 ## Pretrain
 
 ### Single GPU Training From Scratch
 
 The ROI x y z specifies the patch size
+
+#### Training on top of previous pretrained weight
+```
+python pretrain.py --use_checkpoint --batch_size=1 --num_steps=100000 --lrdecay --eval_num=500 --logdir=0 --lr=6e-7 --use_ssl_pretrained
+```
 
 #### Pretrain from scratch
 
@@ -27,11 +39,6 @@ python pretrain.py --use_checkpoint --batch_size=1 --num_steps=100000 --lrdecay 
 
 ```
 python pretrain.py --use_checkpoint --batch_size=1 --num_steps=100000 --lrdecay --eval_num=500 --logdir=0 --lr=6e-6 --resume pretrain\pretrained_models\model_swinvit.pt
-```
-
-#### Training on top of previous pretrained weight
-```
-python pretrain.py --use_checkpoint --batch_size=1 --num_steps=100000 --lrdecay --eval_num=500 --logdir=0 --lr=6e-6 --use_ssl_pretrained
 ```
 
 ### Multi GPU Distributed Training

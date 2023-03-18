@@ -129,6 +129,7 @@ dmypy.json
 .pyre/
 pretrain/pretrained_models/*
 pretrain/runs/**
+pretrain/data/**
 finetune/pretrained_models/*
 finetune/runs/**
 pretrain/jsons/*.json
