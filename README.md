@@ -56,9 +56,21 @@ Get previous pretrained weights `model_swinvit.pt` from [here](https://github.co
 
 ## Pretrain
 
-### Single GPU Training From Scratch
+### Compute Canada
 
-The ROI x y z specifies the patch size
+```sh
+# Only needed for initial setup
+source venv/bin/activate
+python scripts/create_pretrain_dataset_json.py
+
+# Run pretraining
+sbatch run_pretrain.sh
+# The output should comeback in `pretrain-{job_id}.out`
+```
+
+To check the state of your job, run `squeue | grep ${JOB_ID}`: `PD=pending`, `R=running`
+
+### Bender
 
 #### Training on top of previous pretrained weight
 ```
