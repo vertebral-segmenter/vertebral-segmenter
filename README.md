@@ -26,6 +26,8 @@ python -c "import torch; print(torch.cuda.device_count());"
 
 ## Prepare data
 
+Get previous pretrained weights `model_swinvit.pt` from [here](https://github.com/Project-MONAI/research-contributions/tree/6ca48250bcffc455482caf8328d6c8b149145257/SwinUNETR/Pretrain). Store it in `pretrain/pretrained_models/model_swinvit.pt`
+
 ### Compute Canada
 
 1. Add bender's ssh public key to CC
@@ -52,7 +54,6 @@ python scripts/create_pretrain_dataset_json.py
 
 Modify `pretrain/utils/data_utils.py` to load the json and data from the right path.
 
-Get previous pretrained weights `model_swinvit.pt` from [here](https://github.com/Project-MONAI/research-contributions/tree/6ca48250bcffc455482caf8328d6c8b149145257/SwinUNETR/Pretrain). Store it in `pretrain/pretrained_models/model_swinvit.pt`
 
 ## Pretrain
 
