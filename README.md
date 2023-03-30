@@ -1,6 +1,17 @@
 
 ## Env Setup
 
+### Compute Canada
+```
+module load python/3.9.6
+
+python -m venv venv # no conda on compute canada
+source venv/bin/activate
+
+pip install -r requirements.txt # should take a while
+```
+
+### Bender
 ```
 conda create -n vertebral python=3.9
 conda activate vertebral
@@ -14,6 +25,23 @@ python -c "import torch; print(torch.cuda.device_count());"
 ```
 
 ## Prepare data
+
+### Compute Canada
+
+1. Add bender's ssh public key to CC
+2. SSH into bender
+3. Run the following command to copy source data
+
+```sh
+# Where data reside on bender
+LOCAL_DIR=/home/smsmt/Rat_mCT_new
+# Where data reside on compute canada (CC), make sure this folder exist on CC
+CC_DIR=/scratch/yuanshe5/vertebral-segmentation-rat-l2/pretrain/data/
+
+scp ${LOCAL_DIR}/*.nii yuanshe5@graham.computecanada.ca:${CC_DIR}
+```
+
+### Bender
 
 ```sh
 # Copy rat data into prtraining data folder
@@ -86,61 +114,6 @@ With self-supervised encoder weights
 ```
 python finetune.py --json_list=<json-path> --data_dir=<data-path> --feature_size=48 --use_ssl_pretrained --roi_x=96 --roi_y=96 --roi_z=96  --use_checkpoint --batch_size=<batch-size> --max_epochs=<total-num-epochs> --save_checkpoint
 ```
-
-
-## Compute Canada
-Note: add ssh key to bitbucket before cloning.
-
-### Environment on internal node (without GPUs)
-```
-python -m venv environment # no conda on compute canada
-source environment/bin/activate
-
-pip install -r requirements.txt # should take a while
-```
-
-### Prepare data
-
-1. Add bender's ssh public key to CC
-2. SSH into bender
-3. Run the following command to copy source data
-
-```sh
-# Where data reside on bender
-LOCAL_DIR=/home/smsmt/Rat_mCT_new
-# Where data reside on compute canada (CC), make sure this folder exist on CC
-CC_DIR=/scratch/yuanshe5/vertebral-segmentation-rat-l2/pretrain/data/
-
-scp ${LOCAL_DIR}/*.nii yuanshe5@graham.computecanada.ca:${CC_DIR}
-```
-
-### Submitting jobs and GPU test
-
-Create pytorch-test.sh:
-```
-#!/bin/bash
-#SBATCH --gres=gpu:3       # Request GPU "generic resources"
-#SBATCH --cpus-per-task=6  # Cores proportional to GPUs: 6 on Cedar, 16 on Graham.
-#SBATCH --mem=32000M       # Memory proportional to GPUs: 32000 Cedar, 64000 Graham.
-#SBATCH --time=0-03:00
-#SBATCH --output=%N-%j.out
-
-module load python/3.7.7
-virtualenv --no-download $SLURM_TMPDIR/env
-source $SLURM_TMPDIR/env/bin/activate
-# pip install -r requirements.txt # takes too long
-pip install --no-index torch
-
-python -c "import torch; print(\"GPUs\", torch.cuda.device_count());"
-```
-
-Submit job: 
-```
-sbatch pytorch-test.sh 
-```
-
-Should get "Submitted batch job {idx}". By default the output is placed in a file named "slurm-", suffixed with the job ID number and ".out", e.g. slurm-{idx}.out, in the directory from which the job was submitted.
-
 
 ### Useful links
 
