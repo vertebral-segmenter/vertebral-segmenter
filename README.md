@@ -1,6 +1,17 @@
 
 ## Env Setup
 
+### Compute Canada
+```
+module load python/3.9.6
+
+python -m venv venv # no conda on compute canada
+source venv/bin/activate
+
+pip install -r requirements.txt # should take a while
+```
+
+### Bender
 ```
 conda create -n vertebral python=3.9
 conda activate vertebral
@@ -15,22 +26,61 @@ python -c "import torch; print(torch.cuda.device_count());"
 
 ## Prepare data
 
+Get previous pretrained weights `model_swinvit.pt` from [here](https://github.com/Project-MONAI/research-contributions/tree/6ca48250bcffc455482caf8328d6c8b149145257/SwinUNETR/Pretrain). Store it in `pretrain/pretrained_models/model_swinvit.pt`
+
+### Compute Canada
+
+1. Add bender's ssh public key to CC
+2. SSH into bender
+3. Run the following command to copy source data
+
+```sh
+# Where data reside on bender
+LOCAL_DIR=/home/smsmt/Rat_mCT_new
+# Where data reside on compute canada (CC), make sure this folder exist on CC
+CC_DIR=/scratch/yuanshe5/vertebral-segmentation-rat-l2/pretrain/data/
+
+scp ${LOCAL_DIR}/*.nii yuanshe5@graham.computecanada.ca:${CC_DIR}
+```
+
+Then in CC, run the following to scale intensity between -1000 to 1000 and prepare dataset json
+
+```sh
+python data_preprocessing/intensity_scaling.py
+python scripts/create_pretrain_dataset_json.py
+```
+
+### Bender
+
 ```sh
 # Copy rat data into prtraining data folder
 cp -r /home/smsmt/Rat_mCT_new/. ./pretrain/data/
+# Ensure all images have same intensity range
+python data_preprocessing/intensity_scaling.py
 # Prepare rat data json
 python scripts/create_pretrain_dataset_json.py
 ```
 
 Modify `pretrain/utils/data_utils.py` to load the json and data from the right path.
 
-Get previous pretrained weights `model_swinvit.pt` from [here](https://github.com/Project-MONAI/research-contributions/tree/6ca48250bcffc455482caf8328d6c8b149145257/SwinUNETR/Pretrain). Store it in `pretrain/pretrained_models/model_swinvit.pt`
 
 ## Pretrain
 
-### Single GPU Training From Scratch
+### Compute Canada
 
-The ROI x y z specifies the patch size
+```sh
+# Only needed for initial setup
+source venv/bin/activate
+python scripts/create_pretrain_dataset_json.py
+
+# Run pretraining
+sbatch run_pretrain.sh
+# The output should comeback in `pretrain-{job_id}.out`
+```
+
+To check the state of your job, run `squeue | grep ${JOB_ID}`: `PD=pending`, `R=running`
+
+### Bender
 
 #### Training on top of previous pretrained weight
 ```
@@ -86,3 +136,8 @@ With self-supervised encoder weights
 ```
 python finetune.py --json_list=<json-path> --data_dir=<data-path> --feature_size=48 --use_ssl_pretrained --roi_x=96 --roi_y=96 --roi_z=96  --use_checkpoint --batch_size=<batch-size> --max_epochs=<total-num-epochs> --save_checkpoint
 ```
+
+### Useful links
+
+https://docs.alliancecan.ca/wiki/PyTorch#PyTorch_with_Multiple_CPUs
+https://docs.alliancecan.ca/wiki/Running_jobs#Memory
