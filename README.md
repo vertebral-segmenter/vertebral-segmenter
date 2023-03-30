@@ -43,11 +43,20 @@ CC_DIR=/scratch/yuanshe5/vertebral-segmentation-rat-l2/pretrain/data/
 scp ${LOCAL_DIR}/*.nii yuanshe5@graham.computecanada.ca:${CC_DIR}
 ```
 
+Then in CC, run the following to scale intensity between -1000 to 1000 and prepare dataset json
+
+```sh
+python data_preprocessing/intensity_scaling.py
+python scripts/create_pretrain_dataset_json.py
+```
+
 ### Bender
 
 ```sh
 # Copy rat data into prtraining data folder
 cp -r /home/smsmt/Rat_mCT_new/. ./pretrain/data/
+# Ensure all images have same intensity range
+python data_preprocessing/intensity_scaling.py
 # Prepare rat data json
 python scripts/create_pretrain_dataset_json.py
 ```
