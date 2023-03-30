@@ -110,13 +110,13 @@ Create pytorch-test.sh:
 #SBATCH --time=0-03:00
 #SBATCH --output=%N-%j.out
 
-module load python/3.6
+module load python/3.7.7
 virtualenv --no-download $SLURM_TMPDIR/env
 source $SLURM_TMPDIR/env/bin/activate
 # pip install -r requirements.txt # takes too long
 pip install --no-index torch
 
-python -c "import torch; print(torch.cuda.device_count());"
+python -c "import torch; print(\"GPUs\", torch.cuda.device_count());"
 ```
 
 Submit job: 
