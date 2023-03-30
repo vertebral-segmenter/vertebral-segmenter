@@ -99,6 +99,21 @@ source environment/bin/activate
 pip install -r requirements.txt # should take a while
 ```
 
+### Prepare data
+
+1. Add bender's ssh public key to CC
+2. SSH into bender
+3. Run the following command to copy source data
+
+```sh
+# Where data reside on bender
+LOCAL_DIR=/home/smsmt/Rat_mCT_new
+# Where data reside on compute canada (CC), make sure this folder exist on CC
+CC_DIR=/scratch/yuanshe5/vertebral-segmentation-rat-l2/pretrain/data/
+
+scp ${LOCAL_DIR}/*.nii yuanshe5@graham.computecanada.ca:${CC_DIR}
+```
+
 ### Submitting jobs and GPU test
 
 Create pytorch-test.sh:
