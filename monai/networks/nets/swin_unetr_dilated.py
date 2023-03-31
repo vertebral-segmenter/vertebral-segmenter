@@ -106,7 +106,7 @@ class DilSwinUNETR(nn.Module):
 
         self.normalize = normalize
 
-        self.swinViT = SwinTransformer(
+        self.swinViT = DilSwinTransformer(
             in_chans=in_channels,
             embed_dim=feature_size,
             window_size=window_size,
@@ -291,6 +291,43 @@ class DilSwinUNETR(nn.Module):
         logits = self.out(out)
         return logits
 
+
+def dilated_window_partition(x, window_size, dilation=[2, 2, 2]):
+    """window partition operation based on: "Liu et al.,
+    Swin Transformer: Hierarchical Vision Transformer using Shifted Windows
+    <https://arxiv.org/abs/2103.14030>"
+    https://github.com/microsoft/Swin-Transformer
+
+     Args:
+        x: input tensor.
+        window_size: local window size.
+    Output size:
+        (num batch * num windows, window_size_x * window_size_y * window_size_z, num channels)
+    """
+    x_shape = x.size()
+    if len(x_shape) == 5:
+        b, d, h, w, c = x_shape
+        x = x.view(
+            b,
+            d // window_size[0],
+            window_size[0],
+            h // window_size[1],
+            window_size[1],
+            w // window_size[2],
+            window_size[2],
+            c,
+        )
+        x_neighbor = torch.roll(x, shifts=(dilation[0], dilation[1], dilation[2]), dims=(1, 3, 5))
+        windows = (
+            x.permute(0, 1, 3, 5, 2, 4, 6, 7).contiguous().view(-1, window_size[0] * window_size[1] * window_size[2], c)
+        )
+        neighbor_windows = (
+            x_neighbor.permute(0, 1, 3, 5, 2, 4, 6, 7).contiguous().view(-1, window_size[0] * window_size[1] * window_size[2], c)
+        )
+        return torch.cat((windows, neighbor_windows), 1)
+    elif len(x_shape) == 4:
+        raise NotImplementedError
+    return windows
 
 def window_partition(x, window_size):
     """window partition operation based on: "Liu et al.,
@@ -493,7 +530,7 @@ class WindowAttention(nn.Module):
         return x
 
 
-class SwinTransformerBlock(nn.Module):
+class DilSwinTransformerBlock(nn.Module):
     """
     Swin Transformer block based on: "Liu et al.,
     Swin Transformer: Hierarchical Vision Transformer using Shifted Windows
@@ -548,6 +585,15 @@ class SwinTransformerBlock(nn.Module):
             attn_drop=attn_drop,
             proj_drop=drop,
         )
+        self.dilation_window_proj = nn.Linear(in_features=2 * (self.window_size ** 3), out_features=self.window_size ** 3)
+        self.attn_dilated = WindowAttention(
+            dim,
+            window_size=self.window_size,
+            num_heads=num_heads,
+            qkv_bias=qkv_bias,
+            attn_drop=attn_drop,
+            proj_drop=drop,
+        )
 
         self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
         self.norm2 = norm_layer(dim)
@@ -588,9 +634,14 @@ class SwinTransformerBlock(nn.Module):
             shifted_x = x
             attn_mask = None
         x_windows = window_partition(shifted_x, window_size)
+        x_windows_dilated = dilated_window_partition(shifted_x, window_size, -shift_size)
+        b, w, c = x_windows_dilated.shape
+        x_windows_dilated = self.dilation_window_proj(x_windows_dilated.view(b, -1)).view(b, w, c)
         attn_windows = self.attn(x_windows, mask=attn_mask)
         attn_windows = attn_windows.view(-1, *(window_size + (c,)))
-        shifted_x = window_reverse(attn_windows, window_size, dims)
+        attn_windows_dilated = self.attn_dilated(x_windows_dilated, mask=attn_mask)
+        attn_windows_dilated = attn_windows_dilated.view(-1, *(window_size + (c,)))
+        shifted_x = window_reverse((attn_windows + attn_windows_dilated) / 2, window_size, dims)
         if any(i > 0 for i in shift_size):
             if len(x_shape) == 5:
                 x = torch.roll(shifted_x, shifts=(shift_size[0], shift_size[1], shift_size[2]), dims=(1, 2, 3))
@@ -807,7 +858,7 @@ class BasicLayer(nn.Module):
         self.use_checkpoint = use_checkpoint
         self.blocks = nn.ModuleList(
             [
-                SwinTransformerBlock(
+                DilSwinTransformerBlock(
                     dim=dim,
                     num_heads=num_heads,
                     window_size=self.window_size,
@@ -860,7 +911,7 @@ class BasicLayer(nn.Module):
         return x
 
 
-class SwinTransformer(nn.Module):
+class DilSwinTransformer(nn.Module):
     """
     Swin Transformer based on: "Liu et al.,
     Swin Transformer: Hierarchical Vision Transformer using Shifted Windows
