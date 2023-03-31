@@ -10,11 +10,15 @@ source venv/bin/activate
 
 python -c "import torch; print(\"GPUs\", torch.cuda.device_count());"
 
-# Single process version
-# python pretrain.py --use_checkpoint --logdir="single_proc" --batch_size=1 --num_steps=1100 --lrdecay --eval_num=200 --logdir=0 --lr=6e-7 --use_ssl_pretrained
+# Single process version (no dilation)
+# python pretrain.py --use_checkpoint --logdir="no_dilation_0" --batch_size=1 --num_steps=1100 --lrdecay --eval_num=200 --lr=6e-7 --use_ssl_pretrained
+# Single process version (with dilation)
+# python pretrain.py --use_checkpoint --use_dilated_swin --logdir="dilation_0" --batch_size=1 --num_steps=1100 --lrdecay --eval_num=200 --lr=6e-7 --use_ssl_pretrained
 
-# Single process resume training
-python pretrain.py --use_checkpoint  --logdir="resume_0" --batch_size=1 --num_steps=1100 --lrdecay --eval_num=200 --logdir=0 --lr=6e-6 --resume pretrain/runs/0/model_final_epoch.pt
+# Single process resume training (no dilation)
+python pretrain.py --use_checkpoint  --logdir="no_dilation_1" --batch_size=1 --num_steps=5000 --lrdecay --eval_num=500 --lr=6e-7 --resume pretrain/runs/no_dilation_0/model_final_epoch.pt
+# Single process resume training (with dilation)
+# python pretrain.py --use_checkpoint --use_dilated_swin --logdir="dilation_1" --batch_size=1 --num_steps=1100 --lrdecay --eval_num=200 --lr=6e-7 --resume pretrain/runs/0/model_final_epoch.pt
 
 # Distributed version
 # python -m torch.distributed.launch --logdir="distributed" --nproc_per_node=2 --master_port=11223 pretrain.py --batch_size=1 --num_steps=1100 --lrdecay --eval_num=200 --lr=6e-7 --decay=0.1 --use_ssl_pretrained

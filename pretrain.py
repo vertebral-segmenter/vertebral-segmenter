@@ -179,6 +179,7 @@ def main():
     parser.add_argument("--smartcache_dataset", action="store_true", help="use monai smartcache Dataset")
     parser.add_argument("--cache_dataset", action="store_true", help="use monai cache Dataset")
     parser.add_argument("--use_ssl_pretrained", action="store_true", help="use self-supervised pretrained weights")
+    parser.add_argument("--use_dilated_swin", action="store_true", help="use dilated swin unetr architecture instead")
 
     args = parser.parse_args()
     logdir = "pretrain/runs/" + args.logdir
@@ -289,7 +290,7 @@ def main():
             torch.save(model.state_dict(), logdir + "final_model.pth")
         dist.destroy_process_group()
     else:
-        torch.save(model.state_dict(), logdir + "final_model.pth")
+        torch.save(model.state_dict(), logdir + "/final_model.pth")
     save_ckp(checkpoint, logdir + "/model_final_epoch.pt")
 
 
