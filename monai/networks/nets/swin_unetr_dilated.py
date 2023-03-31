@@ -317,14 +317,17 @@ def dilated_window_partition(x, window_size, dilation=[2, 2, 2]):
             window_size[2],
             c,
         )
-        x_neighbor = torch.roll(x, shifts=(dilation[0], dilation[1], dilation[2]), dims=(1, 3, 5))
+        d_neighbor = torch.roll(x, shifts=(dilation[0], 0, 0), dims=(1, 3, 5))
+        x_final = torch.cat((x, d_neighbor), 2)
+        h_neighbor = torch.roll(x_final, shifts=(0, dilation[1], 0), dims=(1, 3, 5))
+        x_final = torch.cat((x_final, h_neighbor), 4)
+        w_neighbor = torch.roll(x_final, shifts=(0, 0, dilation[2]), dims=(1, 3, 5))
+        x_final = torch.cat((x_final, w_neighbor), 6)
+        
+        x_final = x_final[:, :, ::2, : , ::2, :, ::2, :]
         windows = (
-            x.permute(0, 1, 3, 5, 2, 4, 6, 7).contiguous().view(-1, window_size[0] * window_size[1] * window_size[2], c)
+            x_final.permute(0, 1, 3, 5, 2, 4, 6, 7).contiguous().view(-1, window_size[0] * window_size[1] * window_size[2], c)
         )
-        neighbor_windows = (
-            x_neighbor.permute(0, 1, 3, 5, 2, 4, 6, 7).contiguous().view(-1, window_size[0] * window_size[1] * window_size[2], c)
-        )
-        return torch.cat((windows, neighbor_windows), 1)
     elif len(x_shape) == 4:
         raise NotImplementedError
     return windows
@@ -585,7 +588,7 @@ class DilSwinTransformerBlock(nn.Module):
             attn_drop=attn_drop,
             proj_drop=drop,
         )
-        self.dilation_window_proj = nn.Linear(in_features=2 * (self.window_size ** 3), out_features=self.window_size ** 3)
+        # self.dilation_window_proj = nn.Linear(in_features=2 * self.dim * (window_size[0] * window_size[1] * window_size[2]), out_features=self.dim * window_size[0] * window_size[1] * window_size[2])
         self.attn_dilated = WindowAttention(
             dim,
             window_size=self.window_size,
@@ -634,9 +637,9 @@ class DilSwinTransformerBlock(nn.Module):
             shifted_x = x
             attn_mask = None
         x_windows = window_partition(shifted_x, window_size)
-        x_windows_dilated = dilated_window_partition(shifted_x, window_size, -shift_size)
-        b, w, c = x_windows_dilated.shape
-        x_windows_dilated = self.dilation_window_proj(x_windows_dilated.view(b, -1)).view(b, w, c)
+        x_windows_dilated = dilated_window_partition(shifted_x, window_size, [-s for s in shift_size])
+        # b, w, c = x_windows_dilated.shape
+        # x_windows_dilated = self.dilation_window_proj(x_windows_dilated.view(b, -1)).view(b, w, c)
         attn_windows = self.attn(x_windows, mask=attn_mask)
         attn_windows = attn_windows.view(-1, *(window_size + (c,)))
         attn_windows_dilated = self.attn_dilated(x_windows_dilated, mask=attn_mask)
