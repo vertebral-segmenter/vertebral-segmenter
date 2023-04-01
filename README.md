@@ -36,7 +36,7 @@ Get previous pretrained weights `model_swinvit.pt` from [here](https://github.co
 
 ```sh
 # Where data reside on bender
-LOCAL_DIR=/home/smsmt/Rat_mCT_new
+LOCAL_DIR=/home/sherryyuan/rat_dataset
 # Where data reside on compute canada (CC), make sure this folder exist on CC
 CC_DIR=/scratch/yuanshe5/vertebral-segmentation-rat-l2/pretrain/data/
 
