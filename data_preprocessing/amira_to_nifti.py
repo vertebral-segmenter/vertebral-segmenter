@@ -78,7 +78,6 @@ def numpy_dtype_from_amira_dtype(amira_dtype):
         "float": np.float32,
         "double": np.float64,
     }
-    print(amira_dtype)
     return amira_dtype_to_numpy_dtype.get(amira_dtype.lower(), None)
 
 
@@ -134,7 +133,6 @@ def rescale_data(data, new_min, new_max):
 def resample_image(data, affine, new_spacing):
     old_spacing = np.diag(affine)[:3]
     zoom_factors = 10 * (old_spacing / new_spacing)
-    print(zoom_factors)
     resampled_data = zoom(data, zoom_factors, order=5)  # Linear interpolation (order=1)
     new_affine = np.copy(affine)
     np.fill_diagonal(new_affine, np.append(new_spacing, 1))
@@ -169,8 +167,8 @@ if __name__ == '__main__':
     # amira_file = "T:\\S@leh\\CIHR data (Rat_mCT)\\700-Series\\714_L2_Healthy_Untreated_Stereo\\Rat 714 Verte segmentation - Geoff.am"
     nifti_file = 'D:\\vertebral-segmentation-rat-l2\\data_preprocessing\\' + os.path.splitext(os.path.basename(amira_file))[0] + '.nii'
     convert_amira_to_nifti(amira_file, nifti_file)
+    print(f"{nifti_file} converted...")
 
     nifti_img = nib.load(nifti_file)
     nifti_data = nifti_img.get_fdata()
     print(f"NIfTI data min: {nifti_data.min()}, NIfTI data max: {nifti_data.max()}")
-    print("converted...")
