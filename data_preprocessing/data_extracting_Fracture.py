@@ -18,15 +18,26 @@ def convert_nii_gz_to_nii(gz_file_path, nii_file_path):
     nii_gz_file = nib.load(gz_file_path)
     nib.save(nii_gz_file, nii_file_path)
 
-def resample_nifti_file(input_file, output_file, new_spacing=(0.035, 0.035, 0.035)):
-    # Load the input NIfTI file
-    input_img = nib.load(input_file)
-
+def resample_nifti_file(input_img, new_spacing=(0.035, 0.035, 0.035), order=3):
     # Resample the image to the desired spacing
-    resampled_img = resample_to_output(input_img, new_spacing, order=5)
+    resampled_img = resample_to_output(input_img, new_spacing, order)
 
-    # Save the resampled image as a new NIfTI file
-    nib.save(resampled_img, output_file)
+    # Return the new resampled NIfTI image
+    return resampled_img
+
+
+def convert_nifti_to_dtype(input_img, dtype='int16'):
+    # Read the image data
+    input_data = input_img.get_fdata()
+
+    # Convert the input data to the desired output data type
+    converted_data = input_data.astype(dtype)
+
+    # Create a new NIfTI image with the converted data and the same header as the input image
+    converted_img = nib.Nifti1Image(converted_data, input_img.affine, input_img.header)
+
+    # Return the new dtype NIfTI image
+    return converted_img
 
 
 # iterate over files in the source directory (fractured serie)
@@ -46,8 +57,14 @@ for root, dirs, files in os.walk(src_path):
                     print(f"# {dst_file_name} exist in the dataset.")
                     continue
                 dst_file = os.path.join(dst_path, dst_file_name)
+                # if src_file
+                #     os.stat(src_file).st_size / (1024 * 1024)
                 try:
-                    resample_nifti_file(src_file, dst_file, new_spacing=(0.035, 0.035, 0.035))
+                    # Save the resampled image as a new NIfTI file
+                    input_img = nib.load(src_file)
+                    converted_img = convert_nifti_to_dtype(input_img)
+                    resampled_img = resample_nifti_file(converted_img, new_spacing=(0.035, 0.035, 0.035), order=5)
+                    nib.save(resampled_img, dst_file)
                     print(f"{dst_file_name} data resampled and copied...")
                 except:
                     print(f"## Error - Can't resample {src_file}.")
