@@ -1,7 +1,6 @@
 # import required module
-import os, sys
-import shutil
-from amira_to_nifti import convert_amira_to_nifti
+import os
+from data_preprocessing.image_analysis.amira_processing import convert_amira_to_nifti
 
 # assign directories
 src_path = r"T:\S@leh\CIHR data (Rat_mCT)"

@@ -3,6 +3,8 @@ import numpy as np
 import re
 import nibabel as nib
 from scipy.ndimage import zoom
+from nibabel.processing import resample_to_output
+from data_preprocessing.image_analysis.nifti_processing import rescale_data, zoom_image
 
 # def parse_seg_amira_header(amira_file):
 #     with open(amira_file, 'rb') as f:
@@ -123,22 +125,6 @@ def read_amira_data(amira_file, dims, data_type):
     return data
 
 
-def rescale_data(data, new_min, new_max):
-    old_min, old_max = np.min(data), np.max(data)
-    normalized_data = (data.astype(np.float32) - old_min) / (old_max - old_min)
-    new_data = normalized_data * (new_max - new_min) + new_min
-    return new_data
-
-
-def resample_image(data, affine, new_spacing):
-    old_spacing = np.diag(affine)[:3]
-    zoom_factors = 10 * (old_spacing / new_spacing)
-    resampled_data = zoom(data, zoom_factors, order=5)  # Linear interpolation (order=1)
-    new_affine = np.copy(affine)
-    np.fill_diagonal(new_affine, np.append(new_spacing, 1))
-    return resampled_data, new_affine
-
-
 def convert_amira_to_nifti(amira_file, nifti_file, desired_spacing=(0.035, 0.035, 0.035)):
     dims, bbox, data_type = parse_scan_amira_header(amira_file)
     data = read_amira_data(amira_file, dims, data_type)
@@ -152,7 +138,7 @@ def convert_amira_to_nifti(amira_file, nifti_file, desired_spacing=(0.035, 0.035
     rescaled_data = rescale_data(data, -512, 512).astype(np.int16)
 
     # Resample the image data to the desired spacing
-    resampled_data, new_affine = resample_image(rescaled_data, affine, desired_spacing)
+    resampled_data, new_affine = zoom_image(rescaled_data, affine, desired_spacing)
 
     nifti_img = nib.Nifti1Image(resampled_data, new_affine)
     nifti_img = nib.as_closest_canonical(nifti_img)
