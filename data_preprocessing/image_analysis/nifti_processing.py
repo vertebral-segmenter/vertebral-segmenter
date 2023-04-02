@@ -79,5 +79,15 @@ def resize_and_resample_nifti(input_img, scale_factor=0.5, desired_spacing=(0.03
     return resampled_img
 
 
-if __name__ == '__main__':
-    pass
+# if __name__ == '__main__':
+#     nifti_file = r"T:\S@leh\Rat_mCT_new\frac_917_scan_cropped.nii"
+#     input_img = nib.load(nifti_file)
+#     input_data = input_img.get_fdata()
+#     input_affine = input_img.affine
+#     scale_factor = 0.9
+#     resize_factors = [scale_factor] * 3
+#     resized_data = zoom(input_data, resize_factors, order=5)  # Linear interpolation (order=1)
+#     resized_img = nib.Nifti1Image(resized_data, input_affine)
+#     nib.save(convert_nifti_to_dtype(resized_img, output_dtype='int16'), nifti_file)
+#
+#     print(f"{nifti_file} resized...")
