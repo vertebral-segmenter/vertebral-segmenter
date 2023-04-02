@@ -102,13 +102,14 @@ dst_path = r"T:\S@leh\Rat_mCT_new"
 #                         os.rename(os.path.join(dst_path, file), dst_file)
 #                         print(f"{dst_file_name} data copied...")
 
-# Rename manually copied files in destination folder
-for root, dirs, files in os.walk(dst_path):
-        for file in files:
-            if file.lower().endswith('nii') and not '_scan_cropped' in file.lower():
-                    src_file = os.path.join(root, file)
-                    scan_number = [num for num in file.split('_') if num.isnumeric()][0]
-                    dst_file_name = f"{scan_number}_scan_cropped.nii"
-                    dst_file = os.path.join(dst_path, dst_file_name)
-                    os.rename(src_file, dst_file)
-                    print(f"{dst_file_name} data renamed...")
+
+# # Rename manually copied files in destination folder
+# for root, dirs, files in os.walk(dst_path):
+#         for file in files:
+#             if file.lower().endswith('nii') and not '_scan_cropped' in file.lower():
+#                     src_file = os.path.join(root, file)
+#                     scan_number = [num for num in file.split('_') if num.isnumeric()][0]
+#                     dst_file_name = f"{scan_number}_scan_cropped.nii"
+#                     dst_file = os.path.join(dst_path, dst_file_name)
+#                     os.rename(src_file, dst_file)
+#                     print(f"{dst_file_name} data renamed...")
