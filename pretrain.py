@@ -178,7 +178,7 @@ def main():
     parser.add_argument("--dist-url", default="env://", help="url used to set up distributed training")
     parser.add_argument("--smartcache_dataset", action="store_true", help="use monai smartcache Dataset")
     parser.add_argument("--cache_dataset", action="store_true", help="use monai cache Dataset")
-    parser.add_argument("--use_ssl_pretrained", action="store_true", help="use self-supervised pretrained weights")
+    parser.add_argument("--use_ssl_pretrained", default=None, type=str, help="use self-supervised pretrained weights")
     parser.add_argument("--use_dilated_swin", action="store_true", help="use dilated swin unetr architecture instead")
 
     args = parser.parse_args()
@@ -225,7 +225,7 @@ def main():
         optimizer = optim.SGD(params=model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.decay)
 
     if args.use_ssl_pretrained:
-        model_dict = torch.load("./pretrain/pretrained_models/model_swinvit.pt")
+        model_dict = torch.load(args.use_ssl_pretrained)
         state_dict = model_dict["state_dict"]
         # fix potential differences in state dict keys from pre-training to
         # fine-tuning
