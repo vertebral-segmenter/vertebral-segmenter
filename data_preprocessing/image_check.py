@@ -2,7 +2,7 @@
 import os
 import nibabel as nib
 import numpy as np
-from data_preprocessing.image_analysis.nifti_processing import convert_nii_gz_to_nii, convert_nifti_to_dtype, resample_nifti_file
+from data_preprocessing.image_analysis.nifti_processing import convert_nii_gz_to_nii, convert_nifti_to_dtype, resample_nifti_img
 
 src_path = r"T:\S@leh\Rat_mCT_new"
 data_type = 'int16'
