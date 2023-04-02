@@ -7,26 +7,26 @@ from amira_to_nifti import convert_amira_to_nifti
 src_path = r"T:\S@leh\CIHR data (Rat_mCT)"
 dst_path = r"T:\S@leh\Rat_mCT_new"
 
-# # iterate over amira files in the source directory (series 700)
-# serie_path = os.path.join(src_path, "700-Series")
-# for root, dirs, files in os.walk(serie_path):
-#     if 'L2' in root and files:
-#         for file in files:
-#             if os.path.splitext(file.lower())[1] == '.am':
-#                 if ('l1-l3' in file.lower() or 'l2' in file.lower()) and not 'upsampled' in file.lower() and not 'mask' in file.lower() and not 'vbcort' in file.lower():
-#                     src_file = os.path.join(root, file)
-#                     scan_number = root.split('\\')[-1].split('_')[0] if root.split('\\')[-1].split('_')[0].isnumeric() else '7xx'
-#                     dst_file_name = f"{scan_number}_scan_cropped.nii"
-#                     if dst_file_name in os.listdir(dst_path):
-#                         print(f"## Error - scan {scan_number} exist - {file}")
-#                         dst_file_name = os.path.splitext(file)[0] + '.nii'
-#                     dst_file = os.path.join(dst_path, dst_file_name)
-#                     try:
-#                         convert_amira_to_nifti(src_file, dst_file)
-#                         print(f"{dst_file_name} created...")
-#                     except:
-#                         print(f"## Error - Can't convert {file}.")
-#
+# iterate over amira files in the source directory (series 700)
+serie_path = os.path.join(src_path, "700-Series")
+for root, dirs, files in os.walk(serie_path):
+    if 'L2' in root and files:
+        for file in files:
+            if os.path.splitext(file.lower())[1] == '.am':
+                if ('l1-l3' in file.lower() or 'l2' in file.lower()) and not 'upsampled' in file.lower() and not 'mask' in file.lower() and not 'vbcort' in file.lower():
+                    src_file = os.path.join(root, file)
+                    scan_number = root.split('\\')[-1].split('_')[0] if root.split('\\')[-1].split('_')[0].isnumeric() else '7xx'
+                    dst_file_name = f"{scan_number}_scan_cropped.nii"
+                    if dst_file_name in os.listdir(dst_path):
+                        print(f"## Error - scan {scan_number} exist - {file}")
+                        dst_file_name = os.path.splitext(file)[0] + '.nii'
+                    dst_file = os.path.join(dst_path, dst_file_name)
+                    try:
+                        convert_amira_to_nifti(src_file, dst_file)
+                        print(f"{dst_file_name} created...")
+                    except:
+                        print(f"## Error - Can't convert {file}.")
+
 # # iterate over files in the source directory (series 800)
 # serie_path = os.path.join(src_path, "800-Series")
 # for root, dirs, files in os.walk(serie_path):
