@@ -676,6 +676,14 @@ class DilSwinTransformerBlock(nn.Module):
             "attn.qkv.bias",
             "attn.proj.weight",
             "attn.proj.bias",
+
+            "attn_dilated.relative_position_bias_table",
+            "attn_dilated.relative_position_index",
+            "attn_dilated.qkv.weight",
+            "attn_dilated.qkv.bias",
+            "attn_dilated.proj.weight",
+            "attn_dilated.proj.bias",
+
             "norm2.weight",
             "norm2.bias",
             "mlp.fc1.weight",
@@ -692,12 +700,20 @@ class DilSwinTransformerBlock(nn.Module):
             self.attn.qkv.bias.copy_(weights["state_dict"][root + block_names[5]])
             self.attn.proj.weight.copy_(weights["state_dict"][root + block_names[6]])
             self.attn.proj.bias.copy_(weights["state_dict"][root + block_names[7]])
-            self.norm2.weight.copy_(weights["state_dict"][root + block_names[8]])
-            self.norm2.bias.copy_(weights["state_dict"][root + block_names[9]])
-            self.mlp.linear1.weight.copy_(weights["state_dict"][root + block_names[10]])
-            self.mlp.linear1.bias.copy_(weights["state_dict"][root + block_names[11]])
-            self.mlp.linear2.weight.copy_(weights["state_dict"][root + block_names[12]])
-            self.mlp.linear2.bias.copy_(weights["state_dict"][root + block_names[13]])
+
+            self.attn_dilated.relative_position_bias_table.copy_(weights["state_dict"][root + block_names[8]])
+            self.attn_dilated.relative_position_index.copy_(weights["state_dict"][root + block_names[9]])
+            self.attn_dilated.qkv.weight.copy_(weights["state_dict"][root + block_names[10]])
+            self.attn_dilated.qkv.bias.copy_(weights["state_dict"][root + block_names[11]])
+            self.attn_dilated.proj.weight.copy_(weights["state_dict"][root + block_names[12]])
+            self.attn_dilated.proj.bias.copy_(weights["state_dict"][root + block_names[13]])
+            
+            self.norm2.weight.copy_(weights["state_dict"][root + block_names[14]])
+            self.norm2.bias.copy_(weights["state_dict"][root + block_names[15]])
+            self.mlp.linear1.weight.copy_(weights["state_dict"][root + block_names[16]])
+            self.mlp.linear1.bias.copy_(weights["state_dict"][root + block_names[17]])
+            self.mlp.linear2.weight.copy_(weights["state_dict"][root + block_names[18]])
+            self.mlp.linear2.bias.copy_(weights["state_dict"][root + block_names[19]])
 
     def forward(self, x, mask_matrix):
         shortcut = x
