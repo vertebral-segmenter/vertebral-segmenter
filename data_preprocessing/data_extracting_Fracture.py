@@ -30,15 +30,14 @@ for root, dirs, files in os.walk(src_path):
                     continue
                 dst_file = os.path.join(dst_path, dst_file_name)
 
-                file_size_mb = os.stat(src_file).st_size / (1024 * 1024)
-                if 150.0 < file_size_mb:
-                    scale_factor = round(1/math.sqrt(file_size_mb/80), 2)
                 try:
                     # Save the resampled image as a new NIfTI file
                     input_img = nib.load(src_file)
                     desired_spacing = (0.035, 0.035, 0.035)
                     order = 5
-                    if scale_factor:
+                    file_size_mb = os.stat(src_file).st_size / (1024 * 1024)
+                    if 150.0 < file_size_mb:
+                        scale_factor = round(1/math.sqrt(file_size_mb/80), 2)
                         resampled_img = resize_and_resample_nifti(input_img, scale_factor, desired_spacing, order)
                     else:
                         resampled_img = resample_nifti_img(input_img, desired_spacing, order)

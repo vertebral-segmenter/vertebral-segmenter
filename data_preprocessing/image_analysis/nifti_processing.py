@@ -1,4 +1,3 @@
-import os
 import numpy as np
 import nibabel as nib
 from scipy.ndimage import zoom
@@ -11,10 +10,11 @@ def rescale_data(data, new_min, new_max):
     new_data = normalized_data * (new_max - new_min) + new_min
     return new_data
 
+
 def zoom_image(data, affine, new_spacing):
     old_spacing = np.diag(affine)[:3]
     zoom_factors = 10 * (old_spacing / new_spacing)
-    resampled_data = zoom(data, zoom_factors, order=5)  # Linear interpolation (order=1)
+    resampled_data = zoom(data, zoom_factors, order=5)
     new_affine = np.copy(affine)
     np.fill_diagonal(new_affine, np.append(new_spacing, 1))
     return resampled_data, new_affine
@@ -28,6 +28,7 @@ def convert_nii_gz_to_nii(gz_file_path, nii_file_path):
 
     nii_gz_file = nib.load(gz_file_path)
     nib.save(nii_gz_file, nii_file_path)
+
 
 def resample_nifti_img(input_img, new_spacing=(0.035, 0.035, 0.035), order=3):
     # Resample the image to the desired spacing
@@ -76,6 +77,7 @@ def resize_and_resample_nifti(input_img, scale_factor=0.5, desired_spacing=(0.03
 
     # Return the new scaled and resampled NIfTI image
     return resampled_img
+
 
 if __name__ == '__main__':
     pass

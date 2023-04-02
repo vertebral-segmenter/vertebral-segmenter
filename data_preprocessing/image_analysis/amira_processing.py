@@ -2,8 +2,6 @@ import os
 import numpy as np
 import re
 import nibabel as nib
-from scipy.ndimage import zoom
-from nibabel.processing import resample_to_output
 from data_preprocessing.image_analysis.nifti_processing import rescale_data, zoom_image
 
 # def parse_seg_amira_header(amira_file):
