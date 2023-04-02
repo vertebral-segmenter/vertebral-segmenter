@@ -26,15 +26,23 @@ def resample_nifti_file(input_img, new_spacing=(0.035, 0.035, 0.035), order=3):
     return resampled_img
 
 
-def convert_nifti_to_dtype(input_img, dtype='int16'):
+def convert_nifti_to_dtype(input_img, output_dtype='int16'):
     # Read the image data
     input_data = input_img.get_fdata()
 
-    # Convert the input data to the desired output data type
-    converted_data = input_data.astype(dtype)
+    # Check if the data type is the same as output_dtype
+    if input_img.get_data_dtype() == output_dtype:
+        return input_img
 
-    # Create a new NIfTI image with the converted data and the same header as the input image
-    converted_img = nib.Nifti1Image(converted_data, input_img.affine, input_img.header)
+    # Convert the input data to the desired output data type
+    converted_data = input_data.astype(output_dtype)
+
+    # Update the header to reflect the new data type
+    new_header = input_img.header.copy()
+    new_header.set_data_dtype(output_dtype)
+
+    # Create a new NIfTI image with the converted data and the same affine transformation as the input image
+    converted_img = nib.Nifti1Image(converted_data, input_img.affine, new_header)
 
     # Return the new dtype NIfTI image
     return converted_img
@@ -62,9 +70,17 @@ for root, dirs, files in os.walk(src_path):
                 try:
                     # Save the resampled image as a new NIfTI file
                     input_img = nib.load(src_file)
-                    converted_img = convert_nifti_to_dtype(input_img)
+                    converted_img = convert_nifti_to_dtype(input_img, output_dtype='int16')
                     resampled_img = resample_nifti_file(converted_img, new_spacing=(0.035, 0.035, 0.035), order=5)
                     nib.save(resampled_img, dst_file)
                     print(f"{dst_file_name} data resampled and copied...")
                 except:
                     print(f"## Error - Can't resample {src_file}.")
+
+
+# if __name__ == '__main__':
+#     input_img = nib.load(r"T:\AlliT\Code\fracture_prediction\pix2pixtrain\images\1003_L1,L2,L3_Healthy_ZA_Microloading\Fractured\AT_CIHR_Microloading_1003_Fractured_resampled.nii")
+#     converted_img = convert_nifti_to_dtype(input_img, output_dtype='int16')
+#     # resampled_img = resample_nifti_file(converted_img, new_spacing=(0.035, 0.035, 0.035), order=5)
+#     nib.save(converted_img, r'D:\\vertebral-segmentation-rat-l2\\data_preprocessing\\AT_CIHR_Microloading_1003_Fractured_int16.nii')
+#     print(f"data converted...")
