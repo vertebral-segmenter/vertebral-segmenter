@@ -29,7 +29,7 @@ def convert_nii_gz_to_nii(gz_file_path, nii_file_path):
     nii_gz_file = nib.load(gz_file_path)
     nib.save(nii_gz_file, nii_file_path)
 
-def resample_nifti_file(input_img, new_spacing=(0.035, 0.035, 0.035), order=3):
+def resample_nifti_img(input_img, new_spacing=(0.035, 0.035, 0.035), order=3):
     # Resample the image to the desired spacing
     resampled_img = resample_to_output(input_img, new_spacing, order)
 
@@ -58,6 +58,25 @@ def convert_nifti_to_dtype(input_img, output_dtype='int16'):
     # Return the new dtype NIfTI image
     return converted_img
 
+
+def resize_and_resample_nifti(input_img, scale_factor=0.5, desired_spacing=(0.035, 0.035, 0.035)):
+    # Get the image data, affine transformation, and spacing
+    input_data = input_img.get_fdata()
+    input_affine = input_img.affine
+    # input_spacing = input_affine.diagonal()[:-1]
+
+    # Compute the zoom factors for resizing and resampling
+    resize_factors = [scale_factor] * 3
+
+    # Resize the image data
+    resized_data = zoom(input_data, resize_factors, order=3)  # Linear interpolation (order=1)
+    resized_img = nib.Nifti1Image(resized_data, input_affine)
+
+    # Resample the resized image data to the desired spacing
+    resampled_img = resample_nifti_img(resized_img, desired_spacing, order=3)  # Linear interpolation (order=1)
+
+    # Return the new scaled and resampled NIfTI image
+    return resampled_img
 
 if __name__ == '__main__':
     pass
