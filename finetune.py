@@ -80,6 +80,7 @@ parser.add_argument("--use_checkpoint", action="store_true", help="use gradient 
 parser.add_argument("--use_ssl_pretrained", action="store_true", help="use self-supervised pretrained weights")
 parser.add_argument("--spatial_dims", default=3, type=int, help="spatial dimension of input data")
 parser.add_argument("--squared_dice", action="store_true", help="use squared Dice")
+parser.add_argument("--regular_dice", action="store_true", help="use regular Dice")
 
 
 def main():
@@ -158,8 +159,10 @@ def main_worker(gpu, args):
         dice_loss = DiceCELoss(
             to_onehot_y=True, softmax=True, squared_pred=True, smooth_nr=args.smooth_nr, smooth_dr=args.smooth_dr
         )
-    else:
+    elif args.regular_dice:
         dice_loss = DiceCELoss(to_onehot_y=True, softmax=True)
+    else:
+        dice_loss = CustomLoss()
     post_label = AsDiscrete(to_onehot=True, n_classes=args.out_channels)
     post_pred = AsDiscrete(argmax=True, to_onehot=True, n_classes=args.out_channels)
     dice_acc = DiceMetric(include_background=True, reduction=MetricReduction.MEAN, get_not_nans=True)
