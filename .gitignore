@@ -134,6 +134,9 @@ pretrain/data_scaled/**
 pretrain/model_inputs/**
 finetune/pretrained_models/*
 finetune/runs/**
+finetune/data/
+finetune/data_scaled/
+finetune/model_inputs/
 pretrain/jsons/*.json
 finetune/jsons/*.json
 finetune/outputs/**

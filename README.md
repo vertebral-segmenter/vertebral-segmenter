@@ -1,7 +1,7 @@
 
 ## Env Setup
 
-### Compute Canada
+### Compute Canada: Graham
 ```
 module load python/3.9.6
 
@@ -9,6 +9,20 @@ python -m venv venv # no conda on compute canada
 source venv/bin/activate
 
 pip install -r requirements.txt # should take a while
+```
+
+### Compute Canada: Mist
+```
+module load anaconda3/2021.05 cuda/11.4.4 gcc/10.3.0
+
+conda create -n vertebral python=3.9
+source activate vertebral
+
+conda config --prepend channels https://ftp.osuosl.org/pub/open-ce/1.7.2/
+conda config --set channel_priority strict
+conda install -c https://ftp.osuosl.org/pub/open-ce/1.7.2/ pytorch=1.12.1 cudatoolkit=11.4 torchvision=0.13.1
+
+pip install -r requirements-mist.txt # should take a while
 ```
 
 ### Bender
@@ -41,6 +55,17 @@ LOCAL_DIR=/home/sherryyuan/rat_dataset
 CC_DIR=/scratch/yuanshe5/vertebral-segmentation-rat-l2/pretrain/data/
 
 scp ${LOCAL_DIR}/*.nii yuanshe5@graham.computecanada.ca:${CC_DIR}
+```
+
+4. Run the following command to copy source data for finetune
+
+```sh
+# Where data reside on bender
+LOCAL_DIR=/home/smsmt/Rat_mCT_new
+# Where data reside on compute canada (CC), make sure this folder exist on CC
+CC_DIR=/scratch/c/cwhyne/yuanshe5/vertebral-segmentation-rat-l2/finetune/data/
+
+scp -i ~/.ssh/bitbucket -r ${LOCAL_DIR}/. yuanshe5@niagara.scinet.utoronto.ca:${CC_DIR}
 ```
 
 Then in CC, run the following to scale intensity between -1000 to 1000 and prepare dataset json

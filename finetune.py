@@ -14,10 +14,14 @@ from finetune.utils.data_utils import get_loader
 
 from monai.inferers import sliding_window_inference
 from monai.losses import DiceCELoss
+from monai.losses import CustomLoss
 from monai.metrics import DiceMetric
 from monai.networks.nets import SwinUNETR
+from monai.networks.nets.swin_unetr_dilated import DilSwinUNETR
 from monai.transforms import Activations, AsDiscrete, Compose
 from monai.utils.enums import MetricReduction
+from monai.data.nifti_saver import NiftiSaver
+
 
 parser = argparse.ArgumentParser(description="Swin UNETR segmentation pipeline")
 parser.add_argument("--checkpoint", default=None, help="start training from saved checkpoint")
@@ -54,8 +58,8 @@ parser.add_argument("--feature_size", default=48, type=int, help="feature size")
 parser.add_argument("--in_channels", default=1, type=int, help="number of input channels")
 parser.add_argument("--out_channels", default=14, type=int, help="number of output channels")
 parser.add_argument("--use_normal_dataset", action="store_true", help="use monai Dataset class")
-parser.add_argument("--a_min", default=-175.0, type=float, help="a_min in ScaleIntensityRanged")
-parser.add_argument("--a_max", default=250.0, type=float, help="a_max in ScaleIntensityRanged")
+parser.add_argument("--a_min", default=-1000, type=float, help="a_min in ScaleIntensityRanged")
+parser.add_argument("--a_max", default=1000, type=float, help="a_max in ScaleIntensityRanged")
 parser.add_argument("--b_min", default=0.0, type=float, help="b_min in ScaleIntensityRanged")
 parser.add_argument("--b_max", default=1.0, type=float, help="b_max in ScaleIntensityRanged")
 parser.add_argument("--space_x", default=1.5, type=float, help="spacing in x direction")
@@ -77,9 +81,11 @@ parser.add_argument("--resume_ckpt", action="store_true", help="resume training 
 parser.add_argument("--smooth_dr", default=1e-6, type=float, help="constant added to dice denominator to avoid nan")
 parser.add_argument("--smooth_nr", default=0.0, type=float, help="constant added to dice numerator to avoid zero")
 parser.add_argument("--use_checkpoint", action="store_true", help="use gradient checkpointing to save memory")
-parser.add_argument("--use_ssl_pretrained", action="store_true", help="use self-supervised pretrained weights")
+parser.add_argument("--use_ssl_pretrained", default=None, type=str, help="use self-supervised pretrained weights")
 parser.add_argument("--spatial_dims", default=3, type=int, help="spatial dimension of input data")
 parser.add_argument("--squared_dice", action="store_true", help="use squared Dice")
+parser.add_argument("--regular_dice", action="store_true", help="use regular Dice")
+parser.add_argument("--use_dilated_swin", action="store_true", help="use dilated swin unetr architecture instead")
 
 
 def main():
@@ -110,22 +116,44 @@ def main_worker(gpu, args):
     torch.backends.cudnn.benchmark = True
     args.test_mode = False
     loader = get_loader(args)
+    save_model_inputs = False
+    if save_model_inputs:
+        img_saver = NiftiSaver('./finetune/model_inputs/img')
+        target_saver = NiftiSaver('./finetune/model_inputs/label')
+        for step, batch_data in enumerate(loader[0]):
+            data, target = batch_data["image"], batch_data["label"]
+            if 3 <= step <= 10:
+                img_saver.save_batch(data)
+                target_saver.save_batch(target)
+        exit(0)
     print(args.rank, " gpu", args.gpu)
     if args.rank == 0:
         print("Batch size is:", args.batch_size, "epochs", args.max_epochs)
     inf_size = [args.roi_x, args.roi_y, args.roi_z]
-
     pretrained_dir = args.pretrained_dir
-    model = SwinUNETR(
-        img_size=(args.roi_x, args.roi_y, args.roi_z),
-        in_channels=args.in_channels,
-        out_channels=args.out_channels,
-        feature_size=args.feature_size,
-        drop_rate=0.0,
-        attn_drop_rate=0.0,
-        dropout_path_rate=args.dropout_path_rate,
-        use_checkpoint=args.use_checkpoint,
-    )
+    model=None
+    if args.use_dilated_swin:
+        model = DilSwinUNETR(
+            img_size=(args.roi_x, args.roi_y, args.roi_z),
+            in_channels=args.in_channels,
+            out_channels=args.out_channels,
+            feature_size=args.feature_size,
+            drop_rate=0.0,
+            attn_drop_rate=0.0,
+            dropout_path_rate=args.dropout_path_rate,
+            use_checkpoint=args.use_checkpoint,
+        )
+    else:
+        model = SwinUNETR(
+            img_size=(args.roi_x, args.roi_y, args.roi_z),
+            in_channels=args.in_channels,
+            out_channels=args.out_channels,
+            feature_size=args.feature_size,
+            drop_rate=0.0,
+            attn_drop_rate=0.0,
+            dropout_path_rate=args.dropout_path_rate,
+            use_checkpoint=args.use_checkpoint,
+        )
 
     if args.resume_ckpt:
         model_dict = torch.load(os.path.join(pretrained_dir, args.pretrained_model_name))["state_dict"]
@@ -134,7 +162,7 @@ def main_worker(gpu, args):
 
     if args.use_ssl_pretrained:
         try:
-            model_dict = torch.load("./pretrain/pretrained_models/model_swinvit.pt")
+            model_dict = torch.load(args.use_ssl_pretrained)
             state_dict = model_dict["state_dict"]
             # fix potential differences in state dict keys from pre-training to
             # fine-tuning
@@ -158,8 +186,10 @@ def main_worker(gpu, args):
         dice_loss = DiceCELoss(
             to_onehot_y=True, softmax=True, squared_pred=True, smooth_nr=args.smooth_nr, smooth_dr=args.smooth_dr
         )
-    else:
+    elif args.regular_dice:
         dice_loss = DiceCELoss(to_onehot_y=True, softmax=True)
+    else:
+        dice_loss = CustomLoss()
     post_label = AsDiscrete(to_onehot=True, n_classes=args.out_channels)
     post_pred = AsDiscrete(argmax=True, to_onehot=True, n_classes=args.out_channels)
     dice_acc = DiceMetric(include_background=True, reduction=MetricReduction.MEAN, get_not_nans=True)
