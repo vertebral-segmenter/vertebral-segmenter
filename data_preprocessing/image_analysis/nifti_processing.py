@@ -1,7 +1,33 @@
+from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 import nibabel as nib
+from scipy import ndimage
 from scipy.ndimage import zoom
 from nibabel.processing import resample_to_output
+import pydicom
+import os
+from tqdm import tqdm
+
+
+def load_nifti(file_path):
+    img = nib.load(file_path)
+    data = img.get_fdata()
+    return img, data
+
+
+def save_nifti(data, img, file_path):
+    new_img = nib.Nifti1Image(data, img.affine, img.header)
+    nib.save(new_img, file_path)
+
+
+def crop_roi(data, centroid, size):
+    z_min = int(max(0, centroid[0] - size[0] // 2))
+    z_max = int(min(data.shape[0], centroid[0] + size[0] // 2))
+    y_min = int(max(0, centroid[1] - size[1] // 2))
+    y_max = int(min(data.shape[1], centroid[1] + size[1] // 2))
+    x_min = int(max(0, centroid[2] - size[2] // 2))
+    x_max = int(min(data.shape[2], centroid[2] + size[2] // 2))
+    return data[z_min:z_max, y_min:y_max, x_min:x_max]
 
 
 def rescale_data(data, new_min, new_max):
@@ -60,17 +86,24 @@ def convert_nifti_to_dtype(input_img, output_dtype='int16'):
     return converted_img
 
 
-def resize_and_resample_nifti(input_img, scale_factor=0.5, desired_spacing=(0.035, 0.035, 0.035), order=3):
+def resize_and_resample_nifti(input_img, scale_factor=0.5, desired_spacing=None, order=3):
     # Get the image data, affine transformation, and spacing
     input_data = input_img.get_fdata()
     input_affine = input_img.affine
+    image_header = input_img.header
 
-    # Compute the zoom factors for resizing and resampling
-    resize_factors = [scale_factor] * 3
+    if scale_factor != -1:
+        # Compute the zoom factors for resizing and resampling
+        resize_factors = [scale_factor] * 3
 
-    # Resize the image data
-    resized_data = zoom(input_data, resize_factors, order=order)  # Linear interpolation (order=1)
-    resized_img = nib.Nifti1Image(resized_data, input_affine)
+        # Resize the image data
+        resized_data = zoom(input_data, resize_factors, order=order)  # Linear interpolation (order=1)
+        resized_img = nib.Nifti1Image(resized_data, input_affine)
+    else:
+        resized_img = input_img
+
+    if desired_spacing is None:
+        desired_spacing = image_header.get_zooms()
 
     # Resample the resized image data to the desired spacing
     resampled_img = resample_nifti_img(resized_img, desired_spacing, order)  # Linear interpolation (order=1)
@@ -78,6 +111,67 @@ def resize_and_resample_nifti(input_img, scale_factor=0.5, desired_spacing=(0.03
     # Return the new scaled and resampled NIfTI image
     return resampled_img
 
+
+def load_dicom_file(filepath):
+    return pydicom.dcmread(filepath)
+
+
+def load_dicom_files(folder):
+    dicom_files = []
+    for file in os.listdir(folder):
+        if file.endswith(".DCM;1"):
+            dicom_files.append(pydicom.dcmread(os.path.join(folder, file)))
+    dicom_files.sort(key=lambda x: float(x.ImagePositionPatient[2]))
+    return dicom_files
+
+
+def load_dicom_files_parallel(folder):
+    filepaths = [os.path.join(folder, file) for file in os.listdir(folder) if file.endswith(".DCM;1")]
+
+    with ThreadPoolExecutor() as executor:
+        dicom_files = list(
+            tqdm(executor.map(load_dicom_file, filepaths), total=len(filepaths), desc="Loading DICOM files"))
+
+    dicom_files.sort(key=lambda x: float(x.ImagePositionPatient[2]))
+    return dicom_files
+
+
+def dicom_to_nifti(dicom_files):
+    dimensions = (int(dicom_files[0].Rows), int(dicom_files[0].Columns), len(dicom_files))
+    voxel_sizes = (float(dicom_files[0].PixelSpacing[0]), float(dicom_files[0].PixelSpacing[1]),
+                   float(dicom_files[1].ImagePositionPatient[2]) - float(dicom_files[0].ImagePositionPatient[2]))
+
+    nifti_data = np.zeros(dimensions, dtype=np.int16)
+    for i, dicom_file in enumerate(tqdm(dicom_files, desc="Converting to NIfTI")):
+        nifti_data[:, :, i] = dicom_file.pixel_array
+
+    nifti_affine = np.diag(voxel_sizes + (1,))
+    nifti_image = nib.Nifti1Image(nifti_data, nifti_affine)
+
+    return nifti_image
+
+
+def main():
+    input_folder = r"T:\CIHR Data\3) MicroCT\800-series\850\850_T13,L1,L2,L3,L4_ZR75_Untreated_MicroCT_2836"
+    output_filename = os.path.normpath(
+        r"D:\vertebral-segmentation-rat-l2\data_preprocessing\\" + os.path.basename(input_folder) + ".nii").replace(
+        '\\', '/')
+    print(output_filename)
+
+    # dicom_files = load_dicom_files(input_folder)
+    # print('DICOM files loaded...')
+
+    dicom_files_parr = load_dicom_files_parallel(input_folder)
+    print('DICOM files loaded...')
+
+    nifti_image = dicom_to_nifti(dicom_files_parr)
+    scaled_image = resize_and_resample_nifti(nifti_image, scale_factor=0.2)
+    nib.save(scaled_image, output_filename)
+    print('DICOM to Nifti converted...')
+
+
+if __name__ == "__main__":
+    main()
 
 # if __name__ == '__main__':
 #     nifti_file = r"T:\S@leh\Rat_mCT_new\frac_917_scan_cropped.nii"

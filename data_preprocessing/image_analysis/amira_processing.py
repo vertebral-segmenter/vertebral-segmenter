@@ -149,7 +149,7 @@ if __name__ == '__main__':
     # file_type = 'scan'
     amira_file = r"T:\\S@leh\\CIHR data (Rat_mCT)\\700-Series\\714_L2_Healthy_Untreated_Stereo\\Mik_Rat714_L1-L3 (Saved in 4 - Resampled).am"
     # amira_file = "T:\\S@leh\\CIHR data (Rat_mCT)\\700-Series\\714_L2_Healthy_Untreated_Stereo\\Rat 714 Verte segmentation - Geoff.am"
-    nifti_file = 'D:\\vertebral-segmentation-rat-l2\\data_preprocessing\\' + os.path.splitext(os.path.basename(amira_file))[0] + '.nii'
+    nifti_file = 'D:\\vertebral-segmentation-rat-l2\\data_preprocessing\\' + os.path.splsitext(os.path.basename(amira_file))[0] + '.nii'
     convert_amira_to_nifti(amira_file, nifti_file)
     print(f"{nifti_file} converted...")
 
