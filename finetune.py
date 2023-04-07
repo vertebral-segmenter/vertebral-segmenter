@@ -21,6 +21,7 @@ from monai.networks.nets.swin_unetr_dilated import DilSwinUNETR
 from monai.transforms import Activations, AsDiscrete, Compose
 from monai.utils.enums import MetricReduction
 from monai.data.nifti_saver import NiftiSaver
+from monai.networks import one_hot
 
 
 parser = argparse.ArgumentParser(description="Swin UNETR segmentation pipeline")
@@ -118,11 +119,36 @@ def main_worker(gpu, args):
     loader = get_loader(args)
     test_custom_loss = False
     if test_custom_loss:
+        # dice_loss = DiceCELoss(to_onehot_y=True, softmax=True)
         dice_loss = CustomLoss(to_onehot_y=True)
+        target_saver = NiftiSaver('./finetune/model_inputs/invalid_label')
         for step, batch_data in enumerate(loader[0]):
             data, target = batch_data["image"], batch_data["label"]
             if 3 <= step <= 10: 
-                print(dice_loss(target, target))
+                loss = dice_loss(one_hot(target, num_classes=2), target)
+                print(loss)
+                if loss.sum() > 0.04:
+                    target_saver.save_batch(target)
+        exit(0)
+    test_custom_loss_img = False
+    if test_custom_loss_img:
+        num_batch_with_0 = 0
+        total_num_batch = 0
+        num_data_with_0 = 0
+        total_num_data = 0
+        for step, batch_data in enumerate(loader[0]):
+            data, target = batch_data["image"], batch_data["label"]
+            batch_contain_0 = False
+            for b in range(len(target)):
+                density = target[b].mean()
+                total_num_data += 1
+                if density < 1e-7: 
+                    batch_contain_0 = True
+                    num_data_with_0 += 1
+            num_batch_with_0 += batch_contain_0
+            total_num_batch += 1
+        print(num_batch_with_0/total_num_batch)
+        print(num_data_with_0/total_num_data)
         exit(0)
     save_model_inputs = False
     if save_model_inputs:
