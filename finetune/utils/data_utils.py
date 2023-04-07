@@ -78,7 +78,7 @@ def get_loader(args):
                 neg=1,
                 num_samples=4,
                 image_key="image",
-                image_threshold=0,
+                image_threshold=0.2,
             ),
             transforms.RandFlipd(keys=["image", "label"], prob=args.RandFlipd_prob, spatial_axis=0),
             transforms.RandFlipd(keys=["image", "label"], prob=args.RandFlipd_prob, spatial_axis=1),
