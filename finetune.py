@@ -116,6 +116,14 @@ def main_worker(gpu, args):
     torch.backends.cudnn.benchmark = True
     args.test_mode = False
     loader = get_loader(args)
+    test_custom_loss = False
+    if test_custom_loss:
+        dice_loss = CustomLoss(to_onehot_y=True)
+        for step, batch_data in enumerate(loader[0]):
+            data, target = batch_data["image"], batch_data["label"]
+            if 3 <= step <= 10: 
+                print(dice_loss(target, target))
+        exit(0)
     save_model_inputs = False
     if save_model_inputs:
         img_saver = NiftiSaver('./finetune/model_inputs/img')
@@ -189,7 +197,7 @@ def main_worker(gpu, args):
     elif args.regular_dice:
         dice_loss = DiceCELoss(to_onehot_y=True, softmax=True)
     else:
-        dice_loss = CustomLoss()
+        dice_loss = CustomLoss(to_onehot_y=True)
     post_label = AsDiscrete(to_onehot=True, n_classes=args.out_channels)
     post_pred = AsDiscrete(argmax=True, to_onehot=True, n_classes=args.out_channels)
     dice_acc = DiceMetric(include_background=True, reduction=MetricReduction.MEAN, get_not_nans=True)
