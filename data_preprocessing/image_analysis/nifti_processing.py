@@ -20,6 +20,30 @@ def save_nifti(data, img, file_path):
     nib.save(new_img, file_path)
 
 
+def clip_nifti_image(img, lower_bound=-1000, upper_bound=10000):
+    """
+    Clip the scalar data of a NIfTI image between specified lower and upper bounds.
+
+    Args:
+        img (nibabel.nifti1.Nifti1Image): Input NIfTI image.
+        lower_bound (int, optional): Lower bound for clipping. Default is -1000.
+        upper_bound (int, optional): Upper bound for clipping. Default is 10000.
+
+    Returns:
+        nibabel.nifti1.Nifti1Image: Clipped NIfTI image.
+    """
+    # Extract the image data array
+    img_data = img.get_fdata()
+
+    # Clip the image data between the specified lower and upper bounds
+    clipped_data = img_data.clip(lower_bound, upper_bound)
+
+    # Create a new NIfTI image with the clipped data and the original image's affine transformation
+    clipped_img = nib.Nifti1Image(clipped_data, img.affine)
+
+    return clipped_img
+
+
 def crop_roi(data, centroid, size):
     z_min = int(max(0, centroid[0] - size[0] // 2))
     z_max = int(min(data.shape[0], centroid[0] + size[0] // 2))
@@ -64,7 +88,7 @@ def resample_nifti_img(input_img, new_spacing=(0.035, 0.035, 0.035), order=3):
     return resampled_img
 
 
-def convert_nifti_to_dtype(input_img, output_dtype='int16'):
+def change_dtype(input_img, output_dtype='int16'):
     # Read the image data
     input_data = input_img.get_fdata()
 

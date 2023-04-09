@@ -11,7 +11,7 @@ from scipy.ndimage import center_of_mass
 
 # assign directories
 src_path = r"T:\AlliT\Code\fracture_prediction\pix2pixtrain\images"
-dst_path = r"T:\S@leh\Rat_mCT_new"
+dst_path = r"D:\Rat_mCT_v1"
 
 
 # iterate over files in the source directory (fractured serie)

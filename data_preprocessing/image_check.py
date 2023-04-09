@@ -2,7 +2,7 @@
 import os
 import nibabel as nib
 import numpy as np
-from data_preprocessing.image_analysis.nifti_processing import convert_nii_gz_to_nii, convert_nifti_to_dtype, resample_nifti_img
+from data_preprocessing.image_analysis.nifti_processing import convert_nii_gz_to_nii, change_dtype, resample_nifti_img
 
 src_path = r"T:\S@leh\Rat_mCT_new"
 data_type = 'int16'
@@ -29,7 +29,7 @@ for file in os.listdir(src_path):
 
         if nifti_img.get_data_dtype() != data_type:
             err_dtype[file] = nifti_img.get_data_dtype()
-            converted_img = convert_nifti_to_dtype(nifti_img, output_dtype=data_type)
+            converted_img = change_dtype(nifti_img, output_dtype=data_type)
             nib.save(converted_img, file_path)
             print(f'{file} dtype converted to {data_type}.')
 
