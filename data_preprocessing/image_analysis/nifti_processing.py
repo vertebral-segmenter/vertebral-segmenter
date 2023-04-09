@@ -44,6 +44,34 @@ def clip_nifti_image(img, lower_bound=-1000, upper_bound=10000):
     return clipped_img
 
 
+def compute_volume(segmentation_image):
+    """
+    Compute the volume of the L2 vertebrae segmentation from a 3D binary image.
+
+    Args:
+        segmentation_image (nibabel.nifti1.Nifti1Image): A 3D binary image with L2 vertebrae segmentation.
+
+    Returns:
+        float: The volume of the L2 vertebrae in cubic millimeters.
+    """
+    # Get the image's spacing (voxel size) in millimeters
+    spacing = segmentation_image.header.get_zooms()
+
+    # Calculate the volume of a single voxel in cubic millimeters
+    voxel_volume = spacing[0] * spacing[1] * spacing[2]
+
+    # Convert the segmentation image to a NumPy array
+    segmentation_array = segmentation_image.get_fdata()
+
+    # Count the number of voxels with a value of 1 (L2 vertebrae segmentation)
+    segmented_voxels = (segmentation_array != 0).sum()
+
+    # Calculate the volume of the L2 vertebrae in cubic millimeters
+    volume = segmented_voxels * voxel_volume
+
+    return volume
+
+
 def crop_roi(data, centroid, size):
     z_min = int(max(0, centroid[0] - size[0] // 2))
     z_max = int(min(data.shape[0], centroid[0] + size[0] // 2))
