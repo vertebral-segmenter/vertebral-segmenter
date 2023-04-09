@@ -2,7 +2,7 @@
 #SBATCH --nodes=1       # Request GPU "generic resources"
 #SBATCH --gpus-per-node=1       # Request GPU "generic resources"
 #SBATCH --cpus-per-task=6  # Cores proportional to GPUs: 6 on Cedar, 16 on Graham.
-#SBATCH --time=12:00:00
+#SBATCH --time=18:00:00
 #SBATCH --output=finetune-%j.out
 #SBATCH --mail-user=154757929sherry@gmail.com
 #SBATCH --mail-type=ALL
