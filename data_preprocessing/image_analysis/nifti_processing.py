@@ -20,6 +20,39 @@ def save_nifti(data, img, file_path):
     nib.save(new_img, file_path)
 
 
+def process_segmentation_image(segmentation_image):
+    """
+    Process a segmentation image by checking if it contains only 0s and 1s. If not,
+    set all non-zero values to 1 and change the data type to binary (boolean).
+
+    Args:
+        segmentation_image (nibabel.nifti1.Nifti1Image): A 3D segmentation image.
+
+    Returns:
+        nibabel.nifti1.Nifti1Image: Processed segmentation image with binary data type.
+    """
+    # Convert the segmentation image to a NumPy array
+    segmentation_array = segmentation_image.get_fdata()
+
+    # Check if the image contains only 0s and 1s
+    unique_values = np.unique(segmentation_array)
+    if not np.array_equal(unique_values, [0, 1]):
+        # Set all non-zero values to 1
+        segmentation_array[segmentation_array != 0] = 1
+
+    # Convert the data type to binary (boolean)
+    binary_array = segmentation_array.astype(np.bool)
+
+    # Update the header with the new data type
+    new_header = segmentation_image.header.copy()
+    new_header.set_data_dtype(np.uint8)
+
+    # Create a new NIfTI image with the binary data, the original image's affine transformation, and the updated header
+    binary_image = nib.Nifti1Image(binary_array, segmentation_image.affine, header=new_header)
+
+    return binary_image
+
+
 def clip_nifti_image(img, lower_bound=-1000, upper_bound=10000):
     """
     Clip the scalar data of a NIfTI image between specified lower and upper bounds.
