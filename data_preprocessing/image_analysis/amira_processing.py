@@ -123,7 +123,7 @@ def read_amira_data(amira_file, dims, data_type):
     return data
 
 
-def convert_amira_to_nifti(amira_file, nifti_file, desired_spacing=(0.035, 0.035, 0.035)):
+def convert_amira_to_nifti(amira_file, desired_spacing=(0.035, 0.035, 0.035)):
     dims, bbox, data_type = parse_scan_amira_header(amira_file)
     data = read_amira_data(amira_file, dims, data_type)
 
@@ -141,8 +141,7 @@ def convert_amira_to_nifti(amira_file, nifti_file, desired_spacing=(0.035, 0.035
     nifti_img = nib.Nifti1Image(resampled_data, new_affine)
     nifti_img = nib.as_closest_canonical(nifti_img)
 
-    # Save the NIfTI image
-    nib.save(nifti_img, nifti_file)
+    return nifti_img
 
 
 if __name__ == '__main__':
