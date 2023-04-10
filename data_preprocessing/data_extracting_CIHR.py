@@ -3,6 +3,7 @@ import os
 import shutil
 import nibabel as nib
 from data_preprocessing.image_analysis.amira_processing import convert_amira_to_nifti
+from data_preprocessing.image_analysis.nifti_processing import process_segmentation_image
 
 # assign directories
 src_path = r"T:\S@leh\CIHR data (Rat_mCT)"
@@ -10,17 +11,49 @@ dst_scan_path = r"D:\Rat_mCT_v0\scans"
 dst_label_path = r"D:\Rat_mCT_v0\labels"
 
 
-def copy_file(src_file, dst_path, file_name=None, file_extension=None):
-    if file_name is None:
-        file_name = os.path.basename(src_file)
-    if file_extension is None:
-        file_extension = os.path.splitext(os.path.basename(src_file))[1]
-    file = file_name + file_extension
+def convert_and_copy_image(src_file, dst_path, new_file_name=None, new_file_extension=None, is_label=False):
+    """
+    Convert and copy an image file to a new location, optionally changing the file name and extension.
+
+    Args:
+        src_file (str): Path to the source image file.
+        dst_path (str): Path to the destination directory.
+        new_file_name (str, optional): New file name. Defaults to None.
+        new_file_extension (str, optional): New file extension. Defaults to None.
+        is_label (bool, optional): If True, processes the input image as a segmentation image. Defaults to False.
+    """
+    # Split the source file name and extension
+    file_name, file_extension = os.path.splitext(os.path.basename(src_file))
+    # Set the new file name and extension if provided
+    new_file_name = new_file_name or file_name
+    new_file_extension = new_file_extension or file_extension
+    file = new_file_name + new_file_extension
+
+    # Check if the file already exists in the destination path
     if file in os.listdir(dst_path):
-        print(f"# {file} already exist in the dataset.")
+        print(f"# File exists in {dst_path}: {file}")
         return
-    shutil.copy(src_file, os.path.join(dst_path, file))
-    print(f"{file} copied...")
+
+    # Load the source image using nibabel
+    input_img = nib.load(src_file)
+
+    # Convert Amira image to Nifti image if necessary
+    if file_extension == '.am' and new_file_extension == '.nii':
+        nifti_img = input_img
+        print(f">Amira to Nifti converted: {src_file}")
+    else:
+        nifti_img = input_img
+
+    # Process the image if it's a segmentation image
+    if is_label:
+        processed_img = process_segmentation_image(nifti_img)
+        print(f">Segmentation processed.")
+    else:
+        processed_img = nifti_img
+
+    # Save the processed image in the destination path
+    nib.save(processed_img, os.path.join(dst_path, file))
+    print(f"{'Segmentation' if is_label else 'Scan'} Copied: {src_file} -> {file}")
 
 
 def scan_number(root_path):
@@ -36,12 +69,13 @@ def scan_number(root_path):
 
 
 # iterate over amira files in the source directory (series 700)
-serie_path = os.path.join(src_path, "700-Series")
-for root, dirs, files in os.walk(serie_path):
+series700_path = os.path.join(src_path, "700-Series")
+for root, dirs, files in os.walk(series700_path):
     if 'L2' in root and files:
         for file in files:
             if os.path.splitext(file.lower())[1] == '.am':
-                if ('l1-l3' in file.lower() or 'l2' in file.lower()) and not 'upsampled' in file.lower() and not 'mask' in file.lower() and not 'vbcort' in file.lower():
+                if (
+                        'l1-l3' in file.lower() or 'l2' in file.lower()) and not 'upsampled' in file.lower() and not 'mask' in file.lower() and not 'vbcort' in file.lower():
                     src_file = os.path.join(root, file)
                     dst_file_name = f"{scan_number(src_file)}_scan_cropped.nii"
                     dst_file = os.path.join(dst_path, dst_file_name)
@@ -53,32 +87,22 @@ for root, dirs, files in os.walk(serie_path):
                     except:
                         print(f"## Error - Can't convert {file}.")
 
-
 # iterate over files in the source directory (series 800)
-serie_path = os.path.join(src_path, "800-Series")
-for root, dirs, files in os.walk(serie_path):
+series800_path = os.path.join(src_path, "800-Series")
+for root, dirs, files in os.walk(series800_path):
     if 'L2' in root and files:
         for file in files:
             if file.lower().endswith('nii'):
-                if ('cropped' in file.lower() and 'resampled' in file.lower() or 'scan' in file.lower()) and not 'segmentation' in file.lower():
+                if 'cropped' in file.lower() and 'resampled' in file.lower() or 'scan' in file.lower():
                     src_file = os.path.join(root, file)
-                    # dst_path = dst_image_path if not 'segmentation' in file.lower() else dst_label_path
-                    file_name = f"{scan_number(src_file)}_scan_cropped"
-                    copy_file(src_file, dst_path, file_name=file_name, file_extension='.nii')
-
-                # if ('cropped' in file.lower() and 'resampled' in file.lower() or 'scan' in file.lower()):
-                #     dst_path = dst_image_path if not 'segmentation' in file.lower() else dst_label_path
-                #     src_file = os.path.join(root, file)
-                #
-                #     scan_number = [num for num in src_file.split('/') if num.isnumeric()][0]
-                #     dst_file_name = f"{scan_number}_scan_cropped{'' if not 'segmentation' in file.lower() else '_total'}.nii"
-                #     dst_file = os.path.join(dst_path, dst_file_name)
-                #     if not os.path.exists(dst_file_name): shutil.copy(src_file, dst_file)
-                #     print(f"Data Copied: {src_file} -> {dst_file}")
+                    is_label = True if 'segmentation' in file.lower() else False
+                    dst_path = dst_label_path if is_label else dst_scan_path
+                    file_name = scan_number(src_file) + '_segmentation' if is_label else '_scan_cropped'
+                    copy_file(src_file, dst_path, new_file_name=file_name, new_file_extension='.nii', is_label=is_label)
 
 # iterate over files in the source directory (series 900)
-serie_path = os.path.join(src_path, "900-Series")
-for root, dirs, files in os.walk(serie_path):
+series900_path = os.path.join(src_path, "900-Series")
+for root, dirs, files in os.walk(series900_path):
     if 'L2' in root and files:
         for file in files:
             if file.lower().endswith('nii'):
@@ -87,10 +111,9 @@ for root, dirs, files in os.walk(serie_path):
                     file_name = f"{scan_number(src_file)}_scan_cropped"
                     copy_file(src_file, dst_path, file_name=file_name, file_extension='.nii')
 
-
 # iterate over files in the source directory (series 1000)
-serie_path = os.path.join(src_path, "1000-Series")
-for root, dirs, files in os.walk(serie_path):
+series1000_path = os.path.join(src_path, "1000-Series")
+for root, dirs, files in os.walk(series1000_path):
     if 'L2' in root and files:
         for file in files:
             if file.lower().endswith('nii'):
@@ -98,7 +121,6 @@ for root, dirs, files in os.walk(serie_path):
                     src_file = os.path.join(root, file)
                     file_name = f"{scan_number(src_file)}_scan_cropped"
                     copy_file(src_file, dst_path, file_name=file_name, file_extension='.nii')
-
 
 # iterate over files in the source directory (series 1100)
 # serie_path = os.path.join(src_path, "1100-Series")
