@@ -38,7 +38,7 @@ def process_segmentation_image(segmentation_image):
     unique_values = np.unique(segmentation_array)
     if not np.array_equal(unique_values, [0, 1]):
         # Set all non-zero values to 1
-        segmentation_array[segmentation_array != 0] = 1
+        segmentation_array[segmentation_array == 1 or segmentation_array == 2] = 1
 
     # Convert the data type to binary (boolean)
     binary_array = segmentation_array.astype(np.bool)
