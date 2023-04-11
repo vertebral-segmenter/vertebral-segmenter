@@ -3,12 +3,12 @@ import os
 import shutil
 import nibabel as nib
 from data_preprocessing.image_analysis.amira_processing import convert_amira_to_nifti
-from data_preprocessing.image_analysis.nifti_processing import process_segmentation_image
+from data_preprocessing.image_analysis.nifti_processing import process_segmentation_image, process_scan_image
 
 # assign directories
 src_path = r"T:\S@leh\CIHR data (Rat_mCT)"
-dst_scan_path = r"D:\Rat_mCT_v0\scans"
-dst_label_path = r"D:\Rat_mCT_v0\labels"
+dst_scan_path = r"D:\Rat_mCT_v1\scans"
+dst_label_path = r"D:\Rat_mCT_v1\labels"
 
 
 def convert_and_copy_image(src_file, dst_path, new_file_name=None, new_file_extension=None, is_label=False):
@@ -29,43 +29,45 @@ def convert_and_copy_image(src_file, dst_path, new_file_name=None, new_file_exte
     new_file_extension = new_file_extension or file_extension
     file = new_file_name + new_file_extension
 
-    # Check if the file already exists in the destination path
-    if file in os.listdir(dst_path):
-        print(f"# File exists in {dst_path}: {file}")
+    try:
+        # Check if the file already exists in the destination path
+        if file in os.listdir(dst_path):
+            print(f"# File exists in {dst_path}: {file}\n")
+            return
+
+        # Load the source image using nibabel
+        input_img = nib.load(src_file)
+
+        # Convert Amira image to Nifti image if necessary
+        if file_extension == '.am' and new_file_extension == '.nii':
+            nifti_img = input_img
+            print(f">Amira to Nifti converted: {src_file}")
+        else:
+            nifti_img = input_img
+
+        # Process the image if it's a segmentation image
+        if is_label:
+            processed_img = process_segmentation_image(nifti_img)
+        else:
+            processed_img = process_scan_image(nifti_img)
+
+        # Save the processed image in the destination path
+        nib.save(processed_img, os.path.join(dst_path, file))
+        print(f"{'Segmentation' if is_label else 'Scan'} Copied: {src_file} -> {file}\n")
+    except:
+        print(f"## Error in processing file: {src_file}.\n")
         return
-
-    # Load the source image using nibabel
-    input_img = nib.load(src_file)
-
-    # Convert Amira image to Nifti image if necessary
-    if file_extension == '.am' and new_file_extension == '.nii':
-        nifti_img = input_img
-        print(f">Amira to Nifti converted: {src_file}")
-    else:
-        nifti_img = input_img
-
-    # Process the image if it's a segmentation image
-    if is_label:
-        processed_img = process_segmentation_image(nifti_img)
-        print(f">Segmentation processed.")
-    else:
-        processed_img = nifti_img
-
-    # Save the processed image in the destination path
-    nib.save(processed_img, os.path.join(dst_path, file))
-    print(f"{'Segmentation' if is_label else 'Scan'} Copied: {src_file} -> {file}")
 
 
 def scan_number(root_path):
     for dir in root_path.split('\\'):
         if dir.isnumeric():
-            return dir
+            return str(dir)
         else:
             for num in dir.split('_'):
                 if num.isnumeric():
-                    return num
-                else:
-                    return 'None'
+                    return str(num)
+    return None
 
 
 # iterate over amira files in the source directory (series 700)
@@ -97,8 +99,9 @@ for root, dirs, files in os.walk(series800_path):
                     src_file = os.path.join(root, file)
                     is_label = True if 'segmentation' in file.lower() else False
                     dst_path = dst_label_path if is_label else dst_scan_path
-                    file_name = scan_number(src_file) + '_segmentation' if is_label else '_scan_cropped'
-                    convert_and_copy_image(src_file, dst_path, new_file_name=file_name, new_file_extension='.nii', is_label=is_label)
+                    file_name = f"{scan_number(src_file)}{'_segmentation' if is_label else '_scan_cropped'}"
+                    convert_and_copy_image(src_file, dst_path, new_file_name=file_name, new_file_extension='.nii',
+                                           is_label=is_label)
 
 # iterate over files in the source directory (series 900)
 series900_path = os.path.join(src_path, "900-Series")
@@ -110,8 +113,9 @@ for root, dirs, files in os.walk(series900_path):
                     src_file = os.path.join(root, file)
                     is_label = True if 'segmentation' in file.lower() else False
                     dst_path = dst_label_path if is_label else dst_scan_path
-                    file_name = scan_number(src_file) + '_segmentation' if is_label else '_scan_cropped'
-                    convert_and_copy_image(src_file, dst_path, new_file_name=file_name, new_file_extension='.nii', is_label=is_label)
+                    file_name = f"{scan_number(src_file)}{'_segmentation' if is_label else '_scan_cropped'}"
+                    convert_and_copy_image(src_file, dst_path, new_file_name=file_name, new_file_extension='.nii',
+                                           is_label=is_label)
 
 # iterate over files in the source directory (series 1000)
 series1000_path = os.path.join(src_path, "1000-Series")
@@ -123,14 +127,18 @@ for root, dirs, files in os.walk(series1000_path):
                 if 'scan' in file.lower():
                     is_label = True if 'segmentation' in file.lower() else False
                     dst_path = dst_label_path if is_label else dst_scan_path
-                    file_name = scan_number(src_file) + '_segmentation' if is_label else '_scan_cropped'
-                    convert_and_copy_image(src_file, dst_path, new_file_name=file_name, new_file_extension='.nii', is_label=is_label)
-                elif 'CIHR' in file and ('L1-L3' in file or 'L2' in file and ('resampled' in file.lower() or 'cropped' in file.lower())):
-                    file_name = scan_number(src_file) + '_scan_cropped'
-                    convert_and_copy_image(src_file, dst_scan_path, new_file_name=file_name, new_file_extension='.nii', is_label=False)
+                    file_name = f"{scan_number(src_file)}{'_segmentation' if is_label else '_scan_cropped'}"
+                    convert_and_copy_image(src_file, dst_path, new_file_name=file_name, new_file_extension='.nii',
+                                           is_label=is_label)
+                elif 'CIHR' in file and (
+                        'L1-L3' in file or 'L2' in file and ('resampled' in file.lower() or 'cropped' in file.lower())):
+                    file_name = f"{scan_number(src_file)}_scan_cropped"
+                    convert_and_copy_image(src_file, dst_scan_path, new_file_name=file_name, new_file_extension='.nii',
+                                           is_label=False)
             elif file.lower().endswith('nrrd') and 'trabecular_segmentation' in file.lower():
-                file_name = scan_number(src_file) + '_segmentation'
-                convert_and_copy_image(src_file, dst_label_path, new_file_name=file_name, new_file_extension='.nii', is_label=True)
+                file_name = f"{scan_number(src_file)}_segmentation"
+                convert_and_copy_image(src_file, dst_label_path, new_file_name=file_name, new_file_extension='.nii',
+                                       is_label=True)
             # 1039 label is wrong!
 
 # iterate over files in the source directory (series 1100)
@@ -139,23 +147,26 @@ for root, dirs, files in os.walk(series1100_path):
     if 'L2' in root and files:
         for file in files:
             src_file = os.path.join(root, file)
-            if file.lower().endswith('nii') and 'CIHR' in file and ('L4_cropped_resampled' in file or 'L2__resampled' in file):
-                file_name = scan_number(src_file) + '_scan_cropped'
-                convert_and_copy_image(src_file, dst_scan_path, new_file_name=file_name, new_file_extension='.nii', is_label=False)
+            if file.lower().endswith('nii') and 'CIHR' in file and (
+                    'L4_cropped_resampled' in file or 'L2__resampled' in file):
+                file_name = f"{scan_number(src_file)}_scan_cropped"
+                convert_and_copy_image(src_file, dst_scan_path, new_file_name=file_name, new_file_extension='.nii',
+                                       is_label=False)
             elif file.lower().endswith('nrrd') and 'l2_trabecular_segmentation' in file.lower():
-                file_name = scan_number(src_file) + '_segmentation'
-                convert_and_copy_image(src_file, dst_label_path, new_file_name=file_name, new_file_extension='.nii', is_label=True)
+                file_name = f"{scan_number(src_file)}_segmentation"
+                convert_and_copy_image(src_file, dst_label_path, new_file_name=file_name, new_file_extension='.nii',
+                                       is_label=True)
             elif scan_number(src_file) in range(1107, 1111) and file.endswith('L2.nii'):
-                file_name = scan_number(src_file) + '_scan_cropped'
-                convert_and_copy_image(src_file, dst_scan_path, new_file_name=file_name, new_file_extension='.nii', is_label=False)
+                file_name = f"{scan_number(src_file)}_scan_cropped"
+                convert_and_copy_image(src_file, dst_scan_path, new_file_name=file_name, new_file_extension='.nii',
+                                       is_label=False)
             elif scan_number(src_file) in range(1107, 1111) and file.endswith('L2_SlicerSegmentation.nii'):
-                file_name = scan_number(src_file) + '_segmentation'
-                convert_and_copy_image(src_file, dst_label_path, new_file_name=file_name, new_file_extension='.nii', is_label=True)
+                file_name = f"{scan_number(src_file)}_segmentation"
+                convert_and_copy_image(src_file, dst_label_path, new_file_name=file_name, new_file_extension='.nii',
+                                       is_label=True)
             elif scan_number(src_file) in range(1104, 1117):
                 # should extract data manually
                 pass
-
-
 
 # # Rename manually copied files in destination folder
 # for root, dirs, files in os.walk(dst_path):
