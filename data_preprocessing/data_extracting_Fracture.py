@@ -41,7 +41,7 @@ for root, dirs, files in os.walk(src_path):
                         resampled_img = resize_and_resample_nifti(input_img, scale_factor, desired_spacing, order)
                     else:
                         resampled_img = resample_nifti_img(input_img, desired_spacing, order)
-                    converted_img = change_dtype(resampled_img, output_dtype='int16')
+                    converted_img = change_dtype(resampled_img, new_dtype='int16')
                     nib.save(converted_img, dst_file)
                     print(f"{dst_file_name} data resampled and copied...")
                 except:

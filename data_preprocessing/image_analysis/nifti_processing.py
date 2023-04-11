@@ -20,6 +20,29 @@ def save_nifti(data, img, file_path):
     nib.save(new_img, file_path)
 
 
+def process_scan_image(scan_image, new_dtype='int16', clip_min=-1000, clip_max=10000):
+    """
+    Process a scanned image by converting its data type and clipping its intensity values.
+
+    Args:
+        scan_image (nibabel.nifti1.Nifti1Image): Input scanned image to be processed.
+        new_dtype (str, optional): The target data type for the converted image, default is 'int16'.
+        clip_min (int, optional): The minimum intensity value for clipping, default is -1000.
+        clip_max (int, optional): The maximum intensity value for clipping, default is 10000.
+
+    Returns:
+        nibabel.nifti1.Nifti1Image: The processed image with the specified data type and clipped intensity values.
+    """
+
+    # Convert the input image to the specified data type
+    converted_image = change_dtype(scan_image, new_dtype)
+
+    # Clip the intensity values of the converted image within the specified bounds
+    clipped_image = clip_nifti_image(converted_image, lower_bound=clip_min, upper_bound=clip_max)
+
+    return clipped_image
+
+
 def process_segmentation_image(segmentation_image):
     """
     Process a segmentation image by checking if it contains only 0s and 1s. If not,
@@ -53,7 +76,7 @@ def process_segmentation_image(segmentation_image):
     return binary_image
 
 
-def clip_nifti_image(img, lower_bound=-1000, upper_bound=10000):
+def clip_nifti_image(img, lower_bound, upper_bound):
     """
     Clip the scalar data of a NIfTI image between specified lower and upper bounds.
 
@@ -149,20 +172,20 @@ def resample_nifti_img(input_img, new_spacing=(0.035, 0.035, 0.035), order=3):
     return resampled_img
 
 
-def change_dtype(input_img, output_dtype='int16'):
+def change_dtype(input_img, new_dtype):
     # Read the image data
     input_data = input_img.get_fdata()
 
     # Check if the data type is the same as output_dtype
-    if input_img.get_data_dtype() == output_dtype:
+    if input_img.get_data_dtype() == new_dtype:
         return input_img
 
     # Convert the input data to the desired output data type
-    converted_data = input_data.astype(output_dtype)
+    converted_data = input_data.astype(new_dtype)
 
     # Update the header to reflect the new data type
     new_header = input_img.header.copy()
-    new_header.set_data_dtype(output_dtype)
+    new_header.set_data_dtype(new_dtype)
 
     # Create a new NIfTI image with the converted data and the same affine transformation as the input image
     converted_img = nib.Nifti1Image(converted_data, input_img.affine, new_header)
