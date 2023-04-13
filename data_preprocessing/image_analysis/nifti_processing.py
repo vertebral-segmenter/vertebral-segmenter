@@ -7,12 +7,55 @@ from nibabel.processing import resample_to_output
 import pydicom
 import os
 from tqdm import tqdm
+import nrrd
 
 
-def load_nifti(file_path):
-    img = nib.load(file_path)
-    data = img.get_fdata()
-    return img, data
+def nrrd_header_to_nifti_affine(header):
+    """
+    Convert an NRRD header's information to a NIfTI affine matrix.
+
+    Args:
+        header (dict): The header of an NRRD file.
+
+    Returns:
+        numpy.ndarray: A 4x4 affine matrix for a NIfTI image.
+    """
+    spacings = header.get('space directions', np.eye(3))
+    spacings = np.vstack([spacings, np.zeros(3)])
+    origin = header.get('space origin', np.zeros(3))
+    origin = np.append(origin, 1)
+    affine = np.column_stack((spacings, origin))
+
+    return affine
+
+
+def load_nrrd_as_nifti(src_file):
+    """
+    Load an NRRD file and return it as a Nifti1Image object.
+
+    Args:
+        src_file (str): The path to the NRRD file.
+
+    Returns:
+        nibabel.nifti1.Nifti1Image: A 3D image loaded from the NRRD file.
+    """
+    # Load the NRRD file
+    data, header = nrrd.read(src_file)
+
+    # Create a new NIfTI image with the data and the affine transformation derived from the NRRD header
+    nifti_img = nib.Nifti1Image(data, nrrd_header_to_nifti_affine(header))
+
+    return nifti_img
+
+
+def load_as_nifti(file_path):
+    if file_path.endwith('.nii'):
+        nifti_img = nib.load(file_path)
+    elif file_path.endwith('.nrrd'):
+        nifti_img = load_nrrd_as_nifti(file_path)
+    else:
+        raise Exception("Error! data can't be loaded...")
+    return nifti_img
 
 
 def save_nifti(data, img, file_path):
