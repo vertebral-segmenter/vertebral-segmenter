@@ -13,7 +13,7 @@ def setup_logger(name, log_file, level=logging.DEBUG):
     logger.setLevel(level)
 
     # Create a file handler for outputting log messages to a file
-    file_handler = logging.FileHandler(log_file)
+    file_handler = logging.FileHandler(log_file, mode='w')  # Set mode to 'w' to overwrite the file
     file_handler.setLevel(level)
 
     # Create a formatter and add it to the file handler
@@ -45,34 +45,42 @@ def convert_and_copy_image(src_file, dst_path, new_file_name=None, new_file_exte
     new_file_extension = new_file_extension or file_extension
     file = new_file_name + new_file_extension
 
-    try:
-        # Check if the file already exists in the destination path
-        if file in os.listdir(dst_path):
-            logger.warning(f"File exists in {dst_path}: {file}") if logger else print(f"File exists in {dst_path}: {file}")
-            return
+    # Check if the file already exists in the destination path
+    if file in os.listdir(dst_path):
+        logger.warning(f"File exists in {dst_path}: {file}") if logger else print(f"File exists in {dst_path}: {file}")
+        return
 
+    try:
         # Load the source image using nibabel
         input_img = nib.load(src_file)
+    except:
+        logger.error(f"Error in loading file: {src_file}.") if logger else print(f"Error in loading file: {src_file}.")
+        return
 
-        # Convert Amira image to Nifti image if necessary
-        if file_extension == '.am' and new_file_extension == '.nii':
+    # Convert Amira image to Nifti image if necessary
+    if file_extension == '.am' and new_file_extension == '.nii':
+        try:
             nifti_img = input_img
             logger.info(f">Amira to Nifti converted: {src_file}") if logger else print(f">Amira to Nifti converted: {src_file}")
-        else:
-            nifti_img = input_img
+        except:
+            logger.error(f"Error in converting Amira file: {src_file}") if logger else print(f"Error in converting Amira file: {src_file}")
+            return
+    else:
+        nifti_img = input_img
 
-        # Process the image if it's a segmentation image
+    # Process the image if it's a segmentation image
+    try:
         if is_label:
             processed_img = process_segmentation_image(nifti_img)
         else:
             processed_img = process_scan_image(nifti_img)
-
-        # Save the processed image in the destination path
-        nib.save(processed_img, os.path.join(dst_path, file))
-        logger.info(f"{'Segmentation' if is_label else 'Scan'} Copied: {src_file} -> {file}") if logger else print(f"{'Segmentation' if is_label else 'Scan'} Copied: {src_file} -> {file}")
     except:
         logger.error(f"Error in processing file: {src_file}.") if logger else print(f"Error in processing file: {src_file}.")
         return
+
+    # Save the processed image in the destination path
+    nib.save(processed_img, os.path.join(dst_path, file))
+    logger.info(f"{'Segmentation' if is_label else 'Scan'} Copied: {src_file} -> {file}") if logger else print(f"{'Segmentation' if is_label else 'Scan'} Copied: {src_file} -> {file}")
 
 
 def scan_number(root_path):
@@ -200,21 +208,6 @@ def process_1100_series(src_path, dst_scan_path=r"D:\Rat_mCT_v1\scans", dst_labe
 
 
 if __name__ == "__main__":
-    # Create and configure logger
-    # logging.basicConfig(encoding='utf-8',
-    #                     level=logging.DEBUG,
-    #                     format='%(asctime)s - %(levelname)s - %(message)s',
-    #                     datefmt='%m/%d/%Y %I:%M:%S %p',
-    #                     filemode='w')
-    # logger = logging.getLogger()
-    # logger.setLevel(logging.DEBUG)
-    #
-    #
-    # logger.debug("This is just a harmless debug message")
-    # logger.info("This is just an information for you")
-    # logger.warning("OOPS!!!Its a Warning")
-    # logger.error("Have you try to divide a number by zero")
-    # logger.critical("The Internet is not working....")
 
     # assign directories
     src_path = r"T:\CIHR Data\16) Stereology"
