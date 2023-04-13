@@ -34,13 +34,13 @@ def process_scan_image(scan_image, new_dtype='int16', clip_min=-1000, clip_max=1
         nibabel.nifti1.Nifti1Image: The processed image with the specified data type and clipped intensity values.
     """
 
-    # Convert the input image to the specified data type
-    converted_image = change_dtype(scan_image, new_dtype)
-
     # Clip the intensity values of the converted image within the specified bounds
-    clipped_image = clip_nifti_image(converted_image, lower_bound=clip_min, upper_bound=clip_max)
+    clipped_image = clip_nifti_image(scan_image, lower_bound=clip_min, upper_bound=clip_max)
 
-    return clipped_image
+    # Convert the input image to the specified data type
+    converted_image = change_dtype(clipped_image, new_dtype)
+
+    return converted_image
 
 
 def process_segmentation_image(segmentation_image):
