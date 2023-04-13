@@ -3,7 +3,7 @@ import os
 import shutil
 import nibabel as nib
 from data_preprocessing.image_analysis.amira_processing import convert_amira_to_nifti
-from data_preprocessing.image_analysis.nifti_processing import process_segmentation_image, process_scan_image
+from data_preprocessing.image_analysis.nifti_processing import process_segmentation_image, process_scan_image, load_as_nifti
 import logging
 
 
@@ -52,7 +52,7 @@ def convert_and_copy_image(src_file, dst_path, new_file_name=None, new_file_exte
 
     try:
         # Load the source image using nibabel
-        input_img = nib.load(src_file)
+        input_img = load_as_nifti(src_file)
     except:
         logger.error(f"Error in loading file: {src_file}.") if logger else print(f"Error in loading file: {src_file}.")
         return

@@ -21,6 +21,11 @@ def nrrd_header_to_nifti_affine(header):
         numpy.ndarray: A 4x4 affine matrix for a NIfTI image.
     """
     spacings = header.get('space directions', np.eye(3))
+
+    # Ensure spacings has the correct shape (3, 3)
+    if spacings.shape != (3, 3):
+        spacings = spacings[:3, :3]
+
     spacings = np.vstack([spacings, np.zeros(3)])
     origin = header.get('space origin', np.zeros(3))
     origin = np.append(origin, 1)
@@ -49,10 +54,12 @@ def load_nrrd_as_nifti(src_file):
 
 
 def load_as_nifti(file_path):
-    if file_path.endwith('.nii'):
+    if file_path.endswith('.nii'):
         nifti_img = nib.load(file_path)
-    elif file_path.endwith('.nrrd'):
+        print("bbbloaded...")
+    elif file_path.endswith('.nrrd'):
         nifti_img = load_nrrd_as_nifti(file_path)
+        print("loaded...")
     else:
         raise Exception("Error! data can't be loaded...")
     return nifti_img
@@ -303,22 +310,23 @@ def dicom_to_nifti(dicom_files):
 
 
 def main():
-    input_folder = r"T:\CIHR Data\3) MicroCT\800-series\850\850_T13,L1,L2,L3,L4_ZR75_Untreated_MicroCT_2836"
-    output_filename = os.path.normpath(
-        r"D:\vertebral-segmentation-rat-l2\data_preprocessing\\" + os.path.basename(input_folder) + ".nii").replace(
-        '\\', '/')
-    print(output_filename)
-
-    # dicom_files = load_dicom_files(input_folder)
+    # input_folder = r"T:\CIHR Data\3) MicroCT\800-series\850\850_T13,L1,L2,L3,L4_ZR75_Untreated_MicroCT_2836"
+    # output_filename = os.path.normpath(
+    #     r"D:\vertebral-segmentation-rat-l2\data_preprocessing\\" + os.path.basename(input_folder) + ".nii").replace(
+    #     '\\', '/')
+    # print(output_filename)
+    #
+    # # dicom_files = load_dicom_files(input_folder)
+    # # print('DICOM files loaded...')
+    #
+    # dicom_files_parr = load_dicom_files_parallel(input_folder)
     # print('DICOM files loaded...')
-
-    dicom_files_parr = load_dicom_files_parallel(input_folder)
-    print('DICOM files loaded...')
-
-    nifti_image = dicom_to_nifti(dicom_files_parr)
-    scaled_image = resize_and_resample_nifti(nifti_image, scale_factor=0.2)
-    nib.save(scaled_image, output_filename)
-    print('DICOM to Nifti converted...')
+    #
+    # nifti_image = dicom_to_nifti(dicom_files_parr)
+    # scaled_image = resize_and_resample_nifti(nifti_image, scale_factor=0.2)
+    # nib.save(scaled_image, output_filename)
+    # print('DICOM to Nifti converted...')
+    nifti_img = load_as_nifti(r"T:\CIHR Data\16) Stereology\1100-Series\1123_L2_Healthy_Untreated_Stereology\1123_L2_Trabecular_Segmentation.seg.nrrd")
 
 
 if __name__ == "__main__":
