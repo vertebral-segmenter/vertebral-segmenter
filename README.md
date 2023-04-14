@@ -61,7 +61,7 @@ scp ${LOCAL_DIR}/*.nii yuanshe5@graham.computecanada.ca:${CC_DIR}
 
 ```sh
 # Where data reside on bender
-LOCAL_DIR=/home/smsmt/Rat_mCT_new
+LOCAL_DIR=/home/smsmt/datasets/Rat_mCT_train_v0
 # Where data reside on compute canada (CC), make sure this folder exist on CC
 CC_DIR=/scratch/c/cwhyne/yuanshe5/vertebral-segmentation-rat-l2/finetune/data/
 
