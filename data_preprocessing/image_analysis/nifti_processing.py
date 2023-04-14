@@ -22,9 +22,9 @@ def nrrd_header_to_nifti_affine(header):
     """
     spacings = header.get('space directions', np.eye(3))
 
-    # Ensure spacings has the correct shape (3, 3)
+    # Ensure spacings has the correct shape (3, 3) and remove first nan row
     if spacings.shape != (3, 3):
-        spacings = spacings[:3, :3]
+        spacings = spacings[1:]
 
     spacings = np.vstack([spacings, np.zeros(3)])
     origin = header.get('space origin', np.zeros(3))
@@ -56,10 +56,8 @@ def load_nrrd_as_nifti(src_file):
 def load_as_nifti(file_path):
     if file_path.endswith('.nii'):
         nifti_img = nib.load(file_path)
-        print("bbbloaded...")
     elif file_path.endswith('.nrrd'):
         nifti_img = load_nrrd_as_nifti(file_path)
-        print("loaded...")
     else:
         raise Exception("Error! data can't be loaded...")
     return nifti_img
@@ -107,14 +105,14 @@ def process_segmentation_image(segmentation_image):
     # Convert the segmentation image to a NumPy array
     segmentation_array = segmentation_image.get_fdata()
 
-    # Check if the image contains only 0s and 1s
-    unique_values = np.unique(segmentation_array)
-    if not np.array_equal(unique_values, [0, 1]):
-        # Set all non-zero values to 1
-        segmentation_array[segmentation_array == 1 or segmentation_array == 2] = 1
+    # Create a boolean mask for segmentation_array[0] and segmentation_array[1] where the value is 1
+    mask = (segmentation_array[0] == 1) | (segmentation_array[1] == 1)
 
-    # Convert the data type to binary (boolean)
-    binary_array = segmentation_array.astype(np.bool)
+    # Create the binary_array with the desired shape (331, 429, 256)
+    binary_array = np.zeros(mask.shape, dtype=np.uint8)
+
+    # Apply the mask to update the binary_array with 1s where the mask is True
+    binary_array[mask] = 1
 
     # Update the header with the new data type
     new_header = segmentation_image.header.copy()
@@ -326,7 +324,10 @@ def main():
     # scaled_image = resize_and_resample_nifti(nifti_image, scale_factor=0.2)
     # nib.save(scaled_image, output_filename)
     # print('DICOM to Nifti converted...')
-    nifti_img = load_as_nifti(r"T:\CIHR Data\16) Stereology\1100-Series\1123_L2_Healthy_Untreated_Stereology\1123_L2_Trabecular_Segmentation.seg.nrrd")
+    nifti_img = load_as_nifti(
+        r"T:\CIHR Data\16) Stereology\1100-Series\1123_L2_Healthy_Untreated_Stereology\1123_L2_Trabecular_Segmentation.seg.nrrd")
+    processed_img = process_segmentation_image(nifti_img)
+    nib.save(processed_img, r'D:\vertebral-segmentation-rat-l2\data_preprocessing\file.nii')
 
 
 if __name__ == "__main__":
