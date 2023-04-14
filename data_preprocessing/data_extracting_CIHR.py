@@ -7,7 +7,7 @@ from data_preprocessing.image_analysis.nifti_processing import process_segmentat
 import logging
 
 
-def setup_logger(name, log_file, level=logging.DEBUG):
+def setup_logger(name, log_file, level=logging.DEBUG, print_log=True):
     """Function to set up a logger with the given name and file."""
     logger = logging.getLogger(name)
     logger.setLevel(level)
@@ -16,12 +16,22 @@ def setup_logger(name, log_file, level=logging.DEBUG):
     file_handler = logging.FileHandler(log_file, mode='w')  # Set mode to 'w' to overwrite the file
     file_handler.setLevel(level)
 
+    # Create a stream handler to print to the terminal
+    if print_log:
+        stream_handler = logging.StreamHandler()
+        stream_handler.setLevel(logging.DEBUG)
+
     # Create a formatter and add it to the file handler
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
-    file_handler.setFormatter(formatter)
+    file_handler_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+    file_handler.setFormatter(file_handler_formatter)
+    if print_log:
+        stream_handler_formatter = logging.Formatter('%(levelname)s - %(message)s')
+        stream_handler.setFormatter(stream_handler_formatter)
 
     # Add the file handler to the logger
     logger.addHandler(file_handler)
+    if print_log:
+        logger.addHandler(stream_handler)
 
     return logger
 
@@ -126,11 +136,18 @@ def process_800_series(src_path, dst_scan_path=r"D:\Rat_mCT_v1\scans", dst_label
                 if file.lower().endswith('nii'):
                     if 'resampled' in file.lower() or 'scan' in file.lower():
                         src_file = os.path.join(root, file)
-                        is_label = True if 'segmentation' in file.lower() else False
-                        dst_path = dst_label_path if is_label else dst_scan_path
-                        file_name = f"{scan_number(src_file)}{'_segmentation' if is_label else '_scan_cropped'}"
-                        convert_and_copy_image(src_file, dst_path, new_file_name=file_name, new_file_extension='.nii',
-                                               is_label=is_label, logger=logger)
+                        if '_segmentation' in file.lower():
+                            is_label = True
+                            file_name = f"{scan_number(src_file)}_segmentation"
+                            convert_and_copy_image(src_file, dst_label_path, new_file_name=file_name, new_file_extension='.nii',
+                                                   is_label=is_label, logger=logger)
+                        elif 'segmentation' not in file.lower():
+                            is_label = False
+                            file_name = f"{scan_number(src_file)}_scan_cropped"
+                            convert_and_copy_image(src_file, dst_scan_path, new_file_name=file_name,
+                                                   is_label=is_label, logger=logger)
+
+
 
 
 # iterate over files in the source directory (series 900)
@@ -160,18 +177,24 @@ def process_1000_series(src_path, dst_scan_path=r"D:\Rat_mCT_v1\scans", dst_labe
                 src_file = os.path.join(root, file)
                 if file.lower().endswith('nii'):
                     if 'scan' in file.lower():
-                        is_label = True if 'segmentation' in file.lower() else False
-                        dst_path = dst_label_path if is_label else dst_scan_path
-                        file_name = f"{scan_number(src_file)}{'_segmentation' if is_label else '_scan_cropped'}"
-                        convert_and_copy_image(src_file, dst_path, new_file_name=file_name, new_file_extension='.nii',
-                                               is_label=is_label, logger=logger)
+                        if '_segmentation' in file.lower():
+                            is_label = True
+                            file_name = f"{scan_number(src_file)}_segmentation"
+                            convert_and_copy_image(src_file, dst_label_path, new_file_name=file_name,
+                                                   new_file_extension='.nii',
+                                                   is_label=is_label, logger=logger)
+                        elif 'segmentation' not in file.lower():
+                            is_label = False
+                            file_name = f"{scan_number(src_file)}_scan_cropped"
+                            convert_and_copy_image(src_file, dst_scan_path, new_file_name=file_name,
+                                                   is_label=is_label, logger=logger)
                     elif 'CIHR' in file and (
                             'L1-L3' in file or 'L2' in file and (
                             'resampled' in file.lower() or 'cropped' in file.lower())):
                         file_name = f"{scan_number(src_file)}_scan_cropped"
                         convert_and_copy_image(src_file, dst_scan_path, new_file_name=file_name,
                                                new_file_extension='.nii', is_label=False, logger=logger)
-                elif file.lower().endswith('nrrd') and 'trabecular_segmentation' in file.lower():
+                elif file.lower().endswith('.nrrd') and 'trabecular_segmentation' in file.lower():
                     file_name = f"{scan_number(src_file)}_segmentation"
                     convert_and_copy_image(src_file, dst_label_path, new_file_name=file_name, new_file_extension='.nii',
                                            is_label=True, logger=logger)
@@ -186,7 +209,7 @@ def process_1100_series(src_path, dst_scan_path=r"D:\Rat_mCT_v1\scans", dst_labe
             for file in files:
                 src_file = os.path.join(root, file)
                 if file.lower().endswith('nii') and 'CIHR' in file and (
-                        'L4_cropped_resampled' in file or 'L2__resampled' in file):
+                        'L4_cropped_resampled' in file or 'L2_resampled' in file):
                     file_name = f"{scan_number(src_file)}_scan_cropped"
                     convert_and_copy_image(src_file, dst_scan_path, new_file_name=file_name, new_file_extension='.nii',
                                            is_label=False, logger=logger)
