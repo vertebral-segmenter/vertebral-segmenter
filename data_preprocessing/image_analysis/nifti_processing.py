@@ -105,8 +105,14 @@ def process_segmentation_image(segmentation_image):
     # Convert the segmentation image to a NumPy array
     segmentation_array = segmentation_image.get_fdata()
 
-    # Create a boolean mask for segmentation_array[0] and segmentation_array[1] where the value is 1
-    mask = (segmentation_array[0] == 1) | (segmentation_array[1] == 1)
+    if len(segmentation_array.shape) == 3:
+        # Set all non-zero values to 1
+        mask = (segmentation_array != 0)
+    elif len(segmentation_array.shape) == 4:
+        # Create a boolean mask for segmentation_array[0] and segmentation_array[1] where the value is 1
+        mask = (segmentation_array[0] == 1) | (segmentation_array[1] == 1)
+    else:
+        raise Exception(f"Error! The loaded segmentation doesn't have appropriate shape! shape: {segmentation_array.shape}")
 
     # Create the binary_array with the desired shape (331, 429, 256)
     binary_array = np.zeros(mask.shape, dtype=np.uint8)
