@@ -3,8 +3,8 @@ import numpy as np
 import json
 
 dataset_base_path = 'finetune/data_scaled/'
-img_path = dataset_base_path+'img/'
-label_path = dataset_base_path+'label/'
+img_path = dataset_base_path+'scans/'
+label_path = dataset_base_path+'labels/'
 
 dst_path = 'finetune/jsons/dataset.json'
 
@@ -34,7 +34,7 @@ def get_image_id(filename):
     return [num for num in filename.split('_') if num.isnumeric()][0]
 
 def get_label_filename(dataset_id):
-    return f"{dataset_id}_seg.nii"
+    return f"{dataset_id}_segmentation.nii"
 
 def img_has_label(label_path, img_fn):
     did = get_image_id(img_fn)

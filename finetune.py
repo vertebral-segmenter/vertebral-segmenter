@@ -87,6 +87,7 @@ parser.add_argument("--spatial_dims", default=3, type=int, help="spatial dimensi
 parser.add_argument("--squared_dice", action="store_true", help="use squared Dice")
 parser.add_argument("--regular_dice", action="store_true", help="use regular Dice")
 parser.add_argument("--use_dilated_swin", action="store_true", help="use dilated swin unetr architecture instead")
+parser.add_argument("--resume", default=None, type=str, help="resume training")
 
 
 def main():
@@ -189,10 +190,11 @@ def main_worker(gpu, args):
             use_checkpoint=args.use_checkpoint,
         )
 
-    if args.resume_ckpt:
-        model_dict = torch.load(os.path.join(pretrained_dir, args.pretrained_model_name))["state_dict"]
-        model.load_state_dict(model_dict)
-        print("Use pretrained weights")
+    if args.resume:
+        model_pth = args.resume
+        model_dict = torch.load(model_pth)
+        model.load_state_dict(model_dict["state_dict"])
+        print(f"Resume training weights: {model_pth}")
 
     if args.use_ssl_pretrained:
         try:
