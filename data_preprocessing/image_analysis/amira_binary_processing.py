@@ -479,3 +479,28 @@ def read_amira_fileobj( fileobj ):
             'data': result,
             }
 
+
+def parse_binary_amira_header(header: str):
+    pattern = r"Lattice\s+(\d+)\s+(\d+)\s+(\d+)"
+    match = re.search(pattern, header)
+    dims = np.array([int(match.group(i)) for i in range(1, 4)])
+
+    pattern = r"BoundingBox\s+([\d\.\-e]+)\s+([\d\.\-e]+)\s+([\d\.\-e]+)\s+([\d\.\-e]+)\s+([\d\.\-e]+)\s+([\d\.\-e]+)"
+    match = re.search(pattern, header)
+    bbox = np.array([float(match.group(i)) for i in range(1, 7)])
+
+    pattern = r'Content\s+"(?:\d+x\d+x\d+\s+)?(\w+)'
+    match = re.search(pattern, header)
+
+    if match is None:
+        print("Header:")
+        print(header)
+        print("Pattern:")
+        print(pattern)
+        raise ValueError("Data type not found in header. Please check the input file.")
+
+    data_type = match.group(1)
+
+    return dims, bbox, data_type
+
+
