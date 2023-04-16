@@ -65,7 +65,7 @@ def val_epoch(model, loader, epoch, acc_func, args, model_inferer=None, post_lab
                 data, target = batch_data
             else:
                 data, target = batch_data["image"], batch_data["label"]
-            data, target = data.cuda(args.rank), target.cuda(args.rank)
+            data, target = data.cuda(args.rank).half(), target.cuda(args.rank).half()
             with autocast(enabled=args.amp):
                 if model_inferer is not None:
                     logits = model_inferer(data)
