@@ -61,7 +61,7 @@ scp ${LOCAL_DIR}/*.nii yuanshe5@graham.computecanada.ca:${CC_DIR}
 
 ```sh
 # Where data reside on bender
-LOCAL_DIR=/home/smsmt/Rat_mCT_new
+LOCAL_DIR=/home/smsmt/datasets/Rat_mCT_train_v0
 # Where data reside on compute canada (CC), make sure this folder exist on CC
 CC_DIR=/scratch/c/cwhyne/yuanshe5/vertebral-segmentation-rat-l2/finetune/data/
 
@@ -142,18 +142,19 @@ python -m torch.distributed.launch --nproc_per_node=8 --master_port=11223 pretra
 
 ### Data preparation
 
-Get data by running `scripts/load_synapse_data.py`
-
-unzip `dataset/Abdomen/rawdata.zip` into `finetune/dataset`, so that this path (`finetune/dataset`) contains `Testing` and `Training` folder.
-
-Prepare dataset json by running `scripts/create_finetune_dataset_json.py`
-
-Reference: https://github.com/Project-MONAI/research-contributions/tree/main/SwinUNETR/BTCV#data-preparation
-
-Default parameters
+```sh
+python scripts/create_finetune_dataset_json.py
+```
 
 ```
-python finetune.py --batch_size=1 --logdir=unetr_test --optim_lr=1e-4 --lrschedule=warmup_cosine --infer_overlap=0.5 --feature_size=48 --use_ssl_pretrained --roi_x=96 --roi_y=96 --roi_z=96 --save_checkpoint --data_dir=./ --json_list=finetune/jsons/dataset.json --use_ssl_pretrained 
+sbatch run_finetune_narval.sh --use_dilated_swin --logdir="dilation_regloss_nopretrain_4e-5" --optim_lr=4e-5 --regular_dice --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit.pt
+sbatch run_finetune_narval.sh --use_dilated_swin --logdir="dilation_regloss_pretrain_4e-5" --optim_lr=4e-5 --regular_dice --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit_dilation_370768.pt
+sbatch run_finetune_narval.sh --use_dilated_swin --logdir="dilation_customloss_nopretrain_4e-5" --optim_lr=4e-5 --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit.pt
+sbatch run_finetune_narval.sh --use_dilated_swin --logdir="dilation_customloss_pretrain_4e-5" --optim_lr=4e-5 --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit_dilation_370768.pt
+sbatch run_finetune_narval.sh --logdir="nodilation_regloss_nopretrain_4e-5" --optim_lr=4e-5 --regular_dice --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit.pt
+sbatch run_finetune_narval.sh --logdir="nodilation_regloss_pretrain_4e-5" --optim_lr=4e-5 --regular_dice --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit_no_dilation_370767.pt
+sbatch run_finetune_narval.sh --logdir="nodilation_customloss_nopretrain_4e-5" --optim_lr=4e-5 --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit.pt
+sbatch run_finetune_narval.sh --logdir="nodilation_customloss_pretrain_4e-5" --optim_lr=4e-5 --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit_no_dilation_370767.pt
 ```
 
 With self-supervised encoder weights

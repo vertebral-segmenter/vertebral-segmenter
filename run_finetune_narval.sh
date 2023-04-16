@@ -2,6 +2,7 @@
 #SBATCH --nodes=1       # Request GPU "generic resources"
 #SBATCH --gpus-per-node=1       # Request GPU "generic resources"
 #SBATCH --cpus-per-task=6  # Cores proportional to GPUs: 6 on Cedar, 16 on Graham.
+#SBATCH --mem=32000M
 #SBATCH --time=23:00:00
 #SBATCH --output=finetune-%j.out
 #SBATCH --mail-user=154757929sherry@gmail.com
@@ -12,8 +13,8 @@
 # module load python/3.9.6
 # source venv/bin/activate
 # Mist setup
-module load anaconda3/2021.05 cuda/11.4.4 gcc/10.3.0
-source activate vertebral
+module load cuda/11.4 python/3.9.6 qt/5.12.8 geos llvm/8.0.1
+source venv/bin/activate
 
 set -euox
 python -c "import torch; print(\"GPUs\", torch.cuda.device_count());"

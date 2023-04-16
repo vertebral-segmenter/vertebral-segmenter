@@ -48,11 +48,11 @@ def pretrain_main():
     print("Image with invalid format:", err_files)
 
 def finetune_main():
-    data_dir = "finetune/data" # Modify this
-    target_dir = "finetune/data_scaled/img"
+    data_dir = "finetune/data/scans" # Modify this
+    target_dir = "finetune/data_scaled/scans"
 
-    label_dir = "finetune/data/segmentations"
-    target_label_dir = "finetune/data_scaled/label"
+    label_dir = "finetune/data/labels"
+    target_label_dir = "finetune/data_scaled/labels"
 
     # target scale range
     b_min = -1000
