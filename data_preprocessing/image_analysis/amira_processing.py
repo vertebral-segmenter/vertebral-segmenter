@@ -3,44 +3,11 @@ import numpy as np
 import re
 import nibabel as nib
 
-from data_preprocessing.image_analysis.amira_binary_processing import read_amira
-from data_preprocessing.image_analysis.nifti_processing import zoom_image, clip_nifti_image, rescale_array
+from data_preprocessing.image_analysis.amira_binary_processing import read_amira, parse_binary_amira_header
+from data_preprocessing.image_analysis.nifti_processing import rescale_array
 
 
-# def parse_seg_amira_header(amira_file):
-#     with open(amira_file, 'rb') as f:
-#         header = b""
-#         while True:
-#             line = f.readline()
-#             if line.startswith(b"@1"):
-#                 break
-#             header += line
-#     header = header.decode('utf-8', errors='ignore')
-#
-#     pattern = r"Lattice\s+(\d+)\s+(\d+)\s+(\d+)"
-#     match = re.search(pattern, header)
-#     dims = [int(match.group(i)) for i in range(1, 4)]
-#
-#     pattern = r"BoundingBox\s+([\d\.\-e]+)\s+([\d\.\-e]+)\s+([\d\.\-e]+)\s+([\d\.\-e]+)\s+([\d\.\-e]+)\s+([\d\.\-e]+)"
-#     match = re.search(pattern, header)
-#     bbox = [float(match.group(i)) for i in range(1, 7)]
-#
-#     pattern = r'Content\s+"(?:\d+x\d+x\d+\s+)?(\w+).*'
-#     match = re.search(pattern, header)
-#
-#     if match is None:
-#         print("Header:")
-#         print(header)
-#         print("Pattern:")
-#         print(pattern)
-#         raise ValueError("Data type not found in header. Please check the input file.")
-#
-#     data_type = match.group(1)
-#
-#     return dims, bbox, data_type
-
-
-def parse_scan_amira_header(amira_file):
+def read_amira_header(amira_file) -> str:
     with open(amira_file, 'rb') as f:
         header = b""
         while True:
@@ -50,13 +17,17 @@ def parse_scan_amira_header(amira_file):
             header += line
     header = header.decode('utf-8', errors='ignore')
 
+    return header
+
+
+def parse_scan_amira_header(header: str):
     pattern = r"Lattice\s+(\d+)\s+(\d+)\s+(\d+)"
     match = re.search(pattern, header)
-    dims = [int(match.group(i)) for i in range(1, 4)]
+    dims = np.array([int(match.group(i)) for i in range(1, 4)])
 
     pattern = r"BoundingBox\s+([\d\.\-e]+)\s+([\d\.\-e]+)\s+([\d\.\-e]+)\s+([\d\.\-e]+)\s+([\d\.\-e]+)\s+([\d\.\-e]+)"
     match = re.search(pattern, header)
-    bbox = [float(match.group(i)) for i in range(1, 7)]
+    bbox = np.array([float(match.group(i)) for i in range(1, 7)])
 
     pattern = r'Content\s+"(?:\d+x\d+x\d+\s+)?(\w+)'
     match = re.search(pattern, header)
@@ -143,7 +114,8 @@ def create_affine_matrix(bbox, dims) -> np.ndarray:
 
 
 def convert_amira_to_nifti(amira_file, lower_bound=-1000, upper_bound=10000):
-    dims, bbox, data_type = parse_scan_amira_header(amira_file)
+    header = read_amira_header(amira_file)
+    dims, bbox, data_type = parse_scan_amira_header(header)
     data = read_amira_data(amira_file, dims, data_type)
 
     # Create the affine matrix
@@ -164,9 +136,16 @@ def convert_amira_to_nifti(amira_file, lower_bound=-1000, upper_bound=10000):
     return nifti_img
 
 
-def convert_binary_amira_to_nifti(fname, nifti_fname):
-    data = read_amira(fname)
+def convert_binary_amira_to_nifti(amira_file):
+    # Calculate affine matrix using the function created earlier
+    header = read_amira_header(amira_file)
+    dims, bbox, data_type = parse_binary_amira_header(header)
+    affine = create_affine_matrix(bbox, dims)
+    print("header readed")
+
+    data = read_amira(amira_file)
     print("readed")
+
     dlist = data['data']
     merged = {}
     for row in dlist:
@@ -175,34 +154,30 @@ def convert_binary_amira_to_nifti(fname, nifti_fname):
         raise ValueError(f'Only binary .am files are supported')
     arr = merged['data']
 
-    # Calculate affine matrix using the function created earlier
-    header = data['header']
-    affine = create_affine_matrix(header)
-
     # Create and save the NIfTI image
     nifti_img = nib.Nifti1Image(arr, affine)
-    nib.save(nifti_img, nifti_fname)
+
+    return nifti_img
 
 
 def main():
-
     # file_type = 'scan'
     amira_path = r"T:\CIHR Data\16) Stereology\700-Series\701_L2_HELA_Untreated_Stereo\Mik_Rat701_L1-L3_volume.am"
     nifti_path = 'D:\\vertebral-segmentation-rat-l2\\data_preprocessing\\' + \
                  os.path.splitext(os.path.basename(amira_path))[0] + '.nii'
     nifti_img = convert_amira_to_nifti(amira_path)
-
-
-    # file_type = 'label'
-    amira_path = r"T:\CIHR Data\16) Stereology\700-Series\730_L2_ACE1_Untreated_Stereo\tumorVBCort_SegmentationL2 (upsampled).am"
-    nifti_path = 'D:\\vertebral-segmentation-rat-l2\\data_preprocessing\\' + \
-                 os.path.splitext(os.path.basename(amira_path))[0] + '.nii'
-
-    nifti_img = convert_binary_amira_to_nifti(amira_path)
-
     # save as nifti image
     nib.save(nifti_img, nifti_path)
     print(f"{nifti_path} converted...")
+
+    # file_type = 'label'
+    amira_path_label = r"T:\CIHR Data\16) Stereology\700-Series\701_L2_HELA_Untreated_Stereo\Mik_Rat701_L1-L3_mask.am"
+    nifti_path_label = 'D:\\vertebral-segmentation-rat-l2\\data_preprocessing\\' + \
+                 os.path.splitext(os.path.basename(amira_path_label))[0] + '.nii'
+    nifti_img_label = convert_binary_amira_to_nifti(amira_path_label)
+    # save as nifti image
+    nib.save(nifti_img_label, nifti_path_label)
+    print(f"{nifti_path_label} converted...")
 
 
 if __name__ == '__main__':
