@@ -24,9 +24,9 @@ class CustomLoss(nn.Module):
         auf_loss = AsymmetricUnifiedFocalLoss(delta=self.delta, gamma=self.gamma)(y_pred, y_true)
         # Obtain BVTV ration mse
         vols_pred = torch.sum(y_pred, dim=[2, 3, 4])
-        bvtv_pred = (vols_pred[:, 1] + self.epsilon) / (vols_pred[:, 0] + self.epsilon)
+        bvtv_pred = (vols_pred[:, 1]) / (vols_pred[:, 0] + vols_pred[:, 1])
         vols_true = torch.sum(y_true, dim=[2, 3, 4])
-        bvtv_true = (vols_true[:, 1] + self.epsilon) / (vols_true[:, 0] + self.epsilon)
+        bvtv_true = (vols_true[:, 1]) / (vols_true[:, 0] + vols_true[:, 1])
         bvtv_mse = nn.MSELoss()(bvtv_pred, bvtv_true)
 
         # Return weighted sum of AUF loss and BVTV mse
