@@ -112,7 +112,8 @@ def process_segmentation_image(segmentation_image):
         # Create a boolean mask for segmentation_array[0] and segmentation_array[1] where the value is 1
         mask = (segmentation_array[0] == 1) | (segmentation_array[1] == 1)
     else:
-        raise Exception(f"Error! The loaded segmentation doesn't have appropriate shape! shape: {segmentation_array.shape}")
+        raise Exception(
+            f"Error! The loaded segmentation doesn't have appropriate shape! shape: {segmentation_array.shape}")
 
     # Create the binary_array with the desired shape (331, 429, 256)
     binary_array = np.zeros(mask.shape, dtype=np.uint8)
@@ -317,6 +318,21 @@ def dicom_to_nifti(dicom_files):
     nifti_image = nib.Nifti1Image(nifti_data, nifti_affine)
 
     return nifti_image
+
+
+def rescale_nifti_image(data, affine, new_dims):
+    # Calculate rescale factors
+    old_dims = np.array(data.shape)
+    rescale_factors = new_dims / old_dims
+
+    # Rescale the image data
+    rescaled_data = zoom(data, rescale_factors)
+
+    # Calculate the new affine matrix
+    new_affine = affine.copy()
+    new_affine[:3, :3] = affine[:3, :3] * (1 / rescale_factors)
+
+    return rescaled_data, new_affine
 
 
 def main():
