@@ -62,25 +62,24 @@ def convert_and_copy_image(src_file, dst_path, new_file_name=None, new_file_exte
         logger.warning(f"File exists in {dst_path}: {file}") if logger else print(f"File exists in {dst_path}: {file}")
         return
 
-    try:
-        # Load the source image using nibabel
-        input_img = load_as_nifti(src_file)
-    except:
-        logger.error(f"Error in loading file: {src_file}.") if logger else print(f"Error in loading file: {src_file}.")
-        return
-
-    # Convert Amira image to Nifti image if necessary
-    if file_extension == '.am' and new_file_extension == '.nii':
+    if file_extension != '.am':
+        # Load the source image using nibabel if it is '.nii' or '.nrrd'
         try:
-            nifti_img = input_img
+            nifti_img = load_as_nifti(src_file)
+        except:
+            logger.error(f"Error in loading file: {src_file}.") if logger else print(f"Error in loading file: {src_file}.")
+            return
+
+    elif new_file_extension == '.nii':
+        # Convert Amira image to Nifti image if necessary
+        try:
+            nifti_img = convert_amira_to_nifti(src_file)
             logger.info(f">Amira to Nifti converted: {src_file}") if logger else print(
                 f">Amira to Nifti converted: {src_file}")
         except:
             logger.error(f"Error in converting Amira file: {src_file}") if logger else print(
                 f"Error in converting Amira file: {src_file}")
             return
-    else:
-        nifti_img = input_img
 
     # Process the image if it's a segmentation image
     try:
@@ -118,11 +117,13 @@ def process_700_series(src_path, dst_scan_path=r"D:\Rat_mCT_v1\scans", dst_label
         if 'L2' in root and files:
             for file in files:
                 if os.path.splitext(file.lower())[1] == '.am':
-                    if (
-                            'l1-l3' in file.lower() or 'l2' in file.lower()) and not 'upsampled' in file.lower() and not 'mask' in file.lower() and not 'vbcort' in file.lower():
-                        src_file = os.path.join(root, file)
-                        dst_file_name = f"{scan_number(src_file)}_scan_cropped.nii"
-                        dst_file = os.path.join(dst_scan_path, dst_file_name)
+                    src_file = os.path.join(root, file)
+                    if ('l1-l3' in file.lower() or 'l2' in file.lower()) and not 'upsampled' in file.lower() and not 'mask' in file.lower() and not 'vbcort' in file.lower():
+                        is_label = False
+                        file_name = f"{scan_number(src_file)}_scan_cropped"
+                        convert_and_copy_image(src_file, dst_scan_path, new_file_name=file_name,
+                                               is_label=is_label, logger=logger)
+
                         try:
                             nifti_img = convert_amira_to_nifti(src_file)
                             # Save the NIfTI image
@@ -139,7 +140,7 @@ def process_800_series(src_path, dst_scan_path=r"D:\Rat_mCT_v1\scans", dst_label
     for root, dirs, files in os.walk(series800_path):
         if 'L2' in root and files:
             for file in files:
-                if file.lower().endswith('nii') and file.lower().endswith('nrrd'):
+                if file.lower().endswith('nii') or file.lower().endswith('nrrd'):
                     if 'resampled' in file.lower() or 'scan' in file.lower():
                         src_file = os.path.join(root, file)
                         if '_segmentation' in file.lower():
@@ -162,7 +163,7 @@ def process_900_series(src_path, dst_scan_path=r"D:\Rat_mCT_v1\scans", dst_label
     for root, dirs, files in os.walk(series900_path):
         if 'L2' in root and files:
             for file in files:
-                if file.lower().endswith('nii') and file.lower().endswith('nrrd'):
+                if file.lower().endswith('nii') or file.lower().endswith('nrrd'):
                     if 'resampled' in file.lower():
                         src_file = os.path.join(root, file)
                         is_label = True if 'segmentation' in file.lower() else False
