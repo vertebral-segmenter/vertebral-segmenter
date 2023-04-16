@@ -143,7 +143,6 @@ python -m torch.distributed.launch --nproc_per_node=8 --master_port=11223 pretra
 ### Data preparation
 
 ```sh
-sbatch run_preproc_<narval>.sh
 python scripts/create_finetune_dataset_json.py
 ```
 

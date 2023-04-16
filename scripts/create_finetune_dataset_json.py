@@ -2,7 +2,7 @@ import os
 import numpy as np
 import json
 
-dataset_base_path = 'finetune/data_scaled/'
+dataset_base_path = 'finetune/data/'
 img_path = dataset_base_path+'scans/'
 label_path = dataset_base_path+'labels/'
 
