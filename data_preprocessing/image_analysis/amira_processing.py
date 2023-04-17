@@ -4,7 +4,8 @@ import re
 import nibabel as nib
 
 from data_preprocessing.image_analysis.amira_binary_processing import read_amira, parse_binary_amira_header
-from data_preprocessing.image_analysis.nifti_processing import rescale_array
+from data_preprocessing.image_analysis.nifti_processing import rescale_array, zoom_image, rescale_nifti_image, \
+    resize_and_resample_nifti
 
 
 def read_amira_header(amira_file) -> str:
@@ -63,23 +64,6 @@ def find_data_start_position(amira_file):
                 data_start_position = f.tell()
                 break
     return data_start_position
-
-
-# def read_amira_data_binary_labels(amira_file, dims):
-#     data_points = np.prod(dims)
-#     with open(amira_file, 'rb') as f:
-#         # Read until the data section
-#         while True:
-#             line = f.readline()
-#             if line.startswith(b"@1"):
-#                 break
-#
-#         # Read the data and convert each byte to a sequence of binary values
-#         byte_data = np.frombuffer(f.read(), dtype=np.uint8)
-#         bit_data = np.unpackbits(byte_data)
-#         data = bit_data[:data_points].reshape(dims)
-#
-#     return data
 
 
 def read_amira_data(amira_file, dims, data_type):
@@ -141,10 +125,7 @@ def convert_binary_amira_to_nifti(amira_file):
     header = read_amira_header(amira_file)
     dims, bbox, data_type = parse_binary_amira_header(header)
     affine = create_affine_matrix(bbox, dims)
-    print("header readed")
-
     data = read_amira(amira_file)
-    print("readed")
 
     dlist = data['data']
     merged = {}
@@ -154,8 +135,14 @@ def convert_binary_amira_to_nifti(amira_file):
         raise ValueError(f'Only binary .am files are supported')
     arr = merged['data']
 
+    print(arr.shape)
+    print(affine)
+    resampled_array, new_affine = rescale_nifti_image(arr, affine, new_dims=np.array([224, 226, 403]))
     # Create and save the NIfTI image
-    nifti_img = nib.Nifti1Image(arr, affine)
+    print(resampled_array.shape)
+    print(new_affine)
+    nifti_img = nib.Nifti1Image(resampled_array, new_affine)
+    nifti_img = resize_and_resample_nifti(nifti_img, scale_factor=-1, desired_spacing=(0.035, 0.035, 0.035))
 
     return nifti_img
 
