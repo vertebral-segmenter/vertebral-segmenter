@@ -24,7 +24,7 @@ from monai.data.nifti_saver import NiftiSaver
 from monai.networks import one_hot
 
 # To prevent CUDA memory fragmentation
-os.environ['PYTORCH_CUDA_ALLOC_CONF'] = "max_split_size_mb:256"
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = "max_split_size_mb:512"
 
 parser = argparse.ArgumentParser(description="Swin UNETR segmentation pipeline")
 parser.add_argument("--checkpoint", default=None, help="start training from saved checkpoint")
