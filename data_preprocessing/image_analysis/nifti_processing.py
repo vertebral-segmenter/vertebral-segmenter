@@ -320,13 +320,14 @@ def dicom_to_nifti(dicom_files):
     return nifti_image
 
 
-def rescale_nifti_image(data, affine, new_dims):
+def rescale_nifti_image(data, affine, new_dims, order=1):
     # Calculate rescale factors
     old_dims = np.array(data.shape)
     rescale_factors = new_dims / old_dims
 
     # Rescale the image data
-    rescaled_data = zoom(data, rescale_factors)
+    rescaled_data = zoom(data, rescale_factors, order=order)
+    print("rescaled")
 
     # Calculate the new affine matrix
     new_affine = affine.copy()
