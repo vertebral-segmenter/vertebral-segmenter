@@ -16,6 +16,7 @@ from monai.inferers import sliding_window_inference
 from monai.losses import DiceCELoss
 from monai.losses import CustomLoss
 from monai.metrics import DiceMetric
+from monai.metrics.R2Bone import R2BoneMetric
 from monai.networks.nets import SwinUNETR
 from monai.networks.nets.swin_unetr_dilated import DilSwinUNETR
 from monai.transforms import Activations, AsDiscrete, Compose

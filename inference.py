@@ -99,7 +99,7 @@ def main():
             val_labels = val_labels.cpu().numpy()[0, 0, :, :, :]
             val_outputs = resample_3d(val_outputs, target_shape)
             dice_list_sub = []
-            for i in range(1, 14):
+            for i in range(1, 2):
                 organ_Dice = dice(val_outputs == i, val_labels == i)
                 dice_list_sub.append(organ_Dice)
             mean_dice = np.mean(dice_list_sub)
