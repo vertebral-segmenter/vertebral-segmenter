@@ -120,7 +120,8 @@ def convert_amira_to_nifti(amira_file, lower_bound=-1000, upper_bound=10000):
     return nifti_img
 
 
-def convert_binary_amira_to_nifti(amira_file):
+def convert_binary_amira_to_nifti(amira_file, new_dims=np.array([224, 226, 403]),
+                                  desired_spacing=(0.035, 0.035, 0.035)):
     # Calculate affine matrix using the function created earlier
     header = read_amira_header(amira_file)
     dims, bbox, data_type = parse_binary_amira_header(header)
@@ -137,12 +138,12 @@ def convert_binary_amira_to_nifti(amira_file):
 
     print(arr.shape)
     print(affine)
-    resampled_array, new_affine = rescale_nifti_image(arr, affine, new_dims=np.array([224, 226, 403]))
+    resampled_array, new_affine = rescale_nifti_image(arr, affine, new_dims)
     # Create and save the NIfTI image
     print(resampled_array.shape)
     print(new_affine)
     nifti_img = nib.Nifti1Image(resampled_array, new_affine)
-    nifti_img = resize_and_resample_nifti(nifti_img, scale_factor=-1, desired_spacing=(0.035, 0.035, 0.035))
+    nifti_img = resize_and_resample_nifti(nifti_img, scale_factor=-1, desired_spacing=desired_spacing)
 
     return nifti_img
 
@@ -158,9 +159,9 @@ def main():
     print(f"{nifti_path} converted...")
 
     # file_type = 'label'
-    amira_path_label = r"T:\CIHR Data\16) Stereology\700-Series\701_L2_HELA_Untreated_Stereo\Mik_Rat701_L1-L3_mask.am"
+    amira_path_label = r"T:\CIHR Data\16) Stereology\700-Series\708_L2_ACE1_Untreated_Stereo\VBCortAfterLevelSet1SegL2 (resampled and cropped).am"
     nifti_path_label = 'D:\\vertebral-segmentation-rat-l2\\data_preprocessing\\' + \
-                 os.path.splitext(os.path.basename(amira_path_label))[0] + '.nii'
+                       os.path.splitext(os.path.basename(amira_path_label))[0] + '.nii'
     nifti_img_label = convert_binary_amira_to_nifti(amira_path_label)
     # save as nifti image
     nib.save(nifti_img_label, nifti_path_label)

@@ -206,6 +206,26 @@ def rescale_array(data, new_min, new_max, dtype=None):
     return rescaled_data
 
 
+def read_nifti_info(nifti_file):
+    img = nib.load(nifti_file)
+
+    image_dimensions = img.shape
+    image_spacing = img.header.get_zooms()
+    image_origin = img.affine[:3, 3]
+    ijk_to_ras_matrix = img.affine[:3, :3]
+    scalar_dtype = img.get_data_dtype()
+    data_array = img.get_fdata()
+    scalar_range = (data_array.min(), data_array.max())
+
+    return {
+        "image_dimensions": image_dimensions,
+        "image_spacing": image_spacing,
+        "image_origin": image_origin,
+        "ijk_to_ras_matrix": ijk_to_ras_matrix,
+        "scalar_dtype": scalar_dtype,
+        "scalar_range": scalar_range
+    }
+
 def zoom_image(data, affine, new_spacing):
     old_spacing = np.diag(affine)[:3]
     zoom_factors = old_spacing / new_spacing

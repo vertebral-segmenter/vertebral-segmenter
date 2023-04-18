@@ -72,7 +72,7 @@ def convert_and_copy_image(src_file, dst_path, new_file_name=None, new_file_exte
         return
 
     if file_extension != '.am':
-        # Load the source image using nibabel if it is '.nii' or '.nrrd'
+        # Load the source image using nibabel if it is '.nii' or '.nii.gz' or '.nrrd'
         try:
             nifti_img = load_as_nifti(src_file)
         except:
