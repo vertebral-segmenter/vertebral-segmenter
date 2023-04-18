@@ -46,7 +46,7 @@ Get previous pretrained weights `model_swinvit.pt` from [here](https://github.co
 
 1. Add bender's ssh public key to CC
 2. SSH into bender
-3. Run the following command to copy source data
+3. Run the following command to copy source data for pretrain
 
 ```sh
 # Where data reside on bender
@@ -54,7 +54,7 @@ LOCAL_DIR=/home/sherryyuan/rat_dataset
 # Where data reside on compute canada (CC), make sure this folder exist on CC
 CC_DIR=/scratch/yuanshe5/vertebral-segmentation-rat-l2/pretrain/data/
 
-scp ${LOCAL_DIR}/*.nii yuanshe5@graham.computecanada.ca:${CC_DIR}
+scp ${LOCAL_DIR}/*.nii yuanshe5@niagara.scinet.utoronto.ca:${CC_DIR}
 ```
 
 4. Run the following command to copy source data for finetune
@@ -136,8 +136,6 @@ python -m torch.distributed.launch --nproc_per_node=<Num-GPUs> --master_port=112
 python -m torch.distributed.launch --nproc_per_node=8 --master_port=11223 pretrain.py --batch_size=1 --num_steps=100000 --lrdecay --eval_num=500 --lr=6e-6 --decay=0.1
 ```
 
-
-
 ## Finetune
 
 ### Data preparation
@@ -146,24 +144,128 @@ python -m torch.distributed.launch --nproc_per_node=8 --master_port=11223 pretra
 python scripts/create_finetune_dataset_json.py
 ```
 
-```
-sbatch run_finetune_narval.sh --use_dilated_swin --logdir="dilation_regloss_nopretrain_4e-5" --optim_lr=4e-5 --regular_dice --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit.pt
-sbatch run_finetune_narval.sh --use_dilated_swin --logdir="dilation_regloss_pretrain_4e-5" --optim_lr=4e-5 --regular_dice --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit_dilation_370768.pt
-sbatch run_finetune_narval.sh --use_dilated_swin --logdir="dilation_customloss_nopretrain_4e-5" --optim_lr=4e-5 --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit.pt
-sbatch run_finetune_narval.sh --use_dilated_swin --logdir="dilation_customloss_pretrain_4e-5" --optim_lr=4e-5 --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit_dilation_370768.pt
-sbatch run_finetune_narval.sh --logdir="nodilation_regloss_nopretrain_4e-5" --optim_lr=4e-5 --regular_dice --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit.pt
-sbatch run_finetune_narval.sh --logdir="nodilation_regloss_pretrain_4e-5" --optim_lr=4e-5 --regular_dice --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit_no_dilation_370767.pt
-sbatch run_finetune_narval.sh --logdir="nodilation_customloss_nopretrain_4e-5" --optim_lr=4e-5 --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit.pt
-sbatch run_finetune_narval.sh --logdir="nodilation_customloss_pretrain_4e-5" --optim_lr=4e-5 --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit_no_dilation_370767.pt
+### Get pretrain model weights
+
+If you skipped the pretrain steps above, you can still get our pretrain model weigths from [here](https://drive.google.com/drive/folders/1XYCtB7EQ-yRIg7s3nC9l1bqPng8yEIOZ?usp=share_link). Store the `.pt` files under foler `pretrain/pretrained_models`.
+
+### Run training
+
+This trains the model and run different combination of parameter (stated below)
+1. with / without pretrain
+2. dice loss / AUFRC (our custom loss)
+3. SwinUNETR / DilatedSwinUNETR (our custom architectural modification) 
+
+```sh
+sbatch run_finetune.sh --use_dilated_swin --logdir="dilation_regloss_nopretrain" --optim_lr=1e-4 --regular_dice --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit.pt
+sbatch run_finetune.sh --use_dilated_swin --logdir="dilation_regloss_pretrain" --optim_lr=1e-4 --regular_dice --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit_dilation_370768.pt
+sbatch run_finetune.sh --use_dilated_swin --logdir="dilation_customloss_nopretrain" --optim_lr=1e-4 --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit.pt
+sbatch run_finetune.sh --use_dilated_swin --logdir="dilation_customloss_pretrain" --optim_lr=1e-4 --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit_dilation_370768.pt
+sbatch run_finetune.sh --logdir="nodilation_regloss_nopretrain" --optim_lr=1e-4 --regular_dice --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit.pt
+sbatch run_finetune.sh --logdir="nodilation_regloss_pretrain" --optim_lr=1e-4 --regular_dice --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit_no_dilation_370767.pt
+sbatch run_finetune.sh --logdir="nodilation_customloss_nopretrain" --optim_lr=1e-4 --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit.pt
+sbatch run_finetune.sh --logdir="nodilation_customloss_pretrain" --optim_lr=1e-4 --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit_no_dilation_370767.pt
 ```
 
-With self-supervised encoder weights
+### Run inference
 
-```
-python finetune.py --json_list=<json-path> --data_dir=<data-path> --feature_size=48 --use_ssl_pretrained --roi_x=96 --roi_y=96 --roi_z=96  --use_checkpoint --batch_size=<batch-size> --max_epochs=<total-num-epochs> --save_checkpoint
+This runs inference using the trained model from the 8 experiments above.
+
+```sh
+sbatch run_inference.sh --use_dilated_swin --exp_name="dilation_regloss_nopretrain" --model=finetune/runs/dilation_regloss_nopretrain_resume/model.pt
+sbatch run_inference.sh --use_dilated_swin --exp_name="dilation_regloss_pretrain" --model=finetune/runs/dilation_regloss_pretrain_resume/model.pt
+sbatch run_inference.sh --use_dilated_swin --exp_name="dilation_customloss_nopretrain" --model=finetune/runs/dilation_customloss_nopretrain/model.pt
+sbatch run_inference.sh --use_dilated_swin --exp_name="dilation_customloss_pretrain" --model=finetune/runs/dilation_customloss_pretrain/model.pt
+sbatch run_inference.sh --exp_name="nodilation_regloss_nopretrain" --model=finetune/runs/nodilation_regloss_nopretrain_resume/model.pt
+sbatch run_inference.sh --exp_name="nodilation_regloss_pretrain" --model=finetune/runs/nodilation_regloss_pretrain_resume/model.pt
+sbatch run_inference.sh --exp_name="nodilation_customloss_nopretrain" --model=finetune/runs/nodilation_customloss_nopretrain/model.pt
+sbatch run_inference.sh --exp_name="nodilation_customloss_pretrain" --model=finetune/runs/nodilation_customloss_pretrain/model.pt
 ```
 
+### Expected folder structure
+
+Here is the snapshot of our directory structure for reference
+```
+.
+├── data_preprocessing
+│   ├── data_extracting_bender.py
+│   ├── data_extracting_CIHR.py
+│   ├── data_extracting_Fracture.py
+│   ├── data_extracting_Osteosarcopenia.py
+│   ├── data_preparation.py
+│   ├── image_analysis
+│   │   ├── amira_binary_processing.py
+│   │   ├── amira_processing.py
+│   │   ├── __init__.py
+│   │   └── nifti_processing.py
+│   ├── image_check.py
+│   ├── image_sampling.py
+│   └── intensity_scaling.py
+├── finetune
+│   ├── data
+│   │   ├── labels
+│   │   │   ├── 1021_segmentation.nii
+│   │   └── scans
+│   │       ├── 1021_scan_cropped.nii
+│   ├── __init__.py
+│   ├── jsons
+│   │   └── dataset.json
+│   ├── LICENSE
+│   ├── optimizers
+│   │   ├── __init__.py
+│   │   └── lr_scheduler.py
+│   ├── trainer.py
+│   └── utils
+│       ├── data_utils.py
+│       ├── __init__.py
+│       └── utils.py
+├── finetune.py
+├── inference.py
+├── __init__.py
+├── LICENSE
+├── monai
+│   ├── ...
+├── pretrain
+│   ├── data
+│   │   └── frac_929_scan_cropped.nii
+│   ├── data_scaled
+│   │   └── frac_929_scan_cropped.nii
+│   ├── __init__.py
+│   ├── jsons
+│   │   ├── dataset.json
+│   │   └── __init__.py
+│   ├── losses
+│   │   ├── loss.py
+│   ├── models
+│   │   └── ssl_head.py
+│   ├── optimizers
+│   │   ├── __init__.py
+│   │   ├── lr_scheduler.py
+│   ├── pretrained_models
+│   │   ├── model_swinvit_dilation_370768.pt
+│   │   ├── model_swinvit_no_dilation_370767.pt
+│   │   └── model_swinvit.pt
+│   └── utils
+│       ├── data_utils.py
+│       ├── __init__.py
+│       └── ops.py
+├── pretrain.py
+├── README.md
+├── requirements-mist.txt
+├── requirements.txt
+├── requirements-win.txt
+├── run_finetune_narval.sh
+├── run_finetune.sh
+├── run_inference.sh
+├── run_preproc_narval.sh
+├── run_preproc.sh
+├── run_pretrain_dilated.sh
+├── run_pretrain.sh
+├── scripts
+│   ├── create_finetune_dataset_json.py
+│   ├── create_pretrain_dataset_json.py
+│   └── load_synapse_data.py
+```
 ### Useful links
 
-https://docs.alliancecan.ca/wiki/PyTorch#PyTorch_with_Multiple_CPUs
-https://docs.alliancecan.ca/wiki/Running_jobs#Memory
+1. https://docs.alliancecan.ca/wiki/PyTorch#PyTorch_with_Multiple_CPUs
+2. https://docs.alliancecan.ca/wiki/Running_jobs#Memory
