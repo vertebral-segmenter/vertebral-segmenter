@@ -142,7 +142,7 @@ for scan_file in scan_files:
 
         # save data
         scan_dest_path = os.path.join(scans_preprocessing_folder, scan_file)
-        nib.save(label_img, scan_dest_path)
+        nib.save(scan_img, scan_dest_path)
         logger.info(f">Scan {scan_file} copied to folder: {scan_dest_path}")
 
         # Check if the label file exists
@@ -202,7 +202,7 @@ for scan_file in scan_files:
             logger.info(f">Segmentation {label_file} copied to folder: {label_dest_path}")
 
             scan_dest_path = os.path.join(scans_finetuning_folder, scan_file)
-            nib.save(label_img, scan_dest_path)
+            nib.save(scan_img, scan_dest_path)
             logger.info(f">Scan {scan_file} copied to folder: {scan_dest_path}")
 
 
