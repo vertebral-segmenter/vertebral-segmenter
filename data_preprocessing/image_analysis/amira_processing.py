@@ -4,7 +4,7 @@ import re
 import nibabel as nib
 
 from data_preprocessing.image_analysis.amira_binary_processing import read_amira, parse_binary_amira_header
-from data_preprocessing.image_analysis.nifti_processing import rescale_array, zoom_image, rescale_nifti_image, \
+from data_preprocessing.image_analysis.nifti_processing import rescale_array, rescale_nifti_image, \
     resize_and_resample_nifti
 
 

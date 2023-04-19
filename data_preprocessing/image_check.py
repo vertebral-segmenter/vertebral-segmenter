@@ -45,7 +45,7 @@ for label_file in label_files:
         scan_file = next((f for f in scan_files if f.startswith(f"{label_num}_")), None)
         if not scan_file:
             logger.error(f"There is a segmentation {label_num} without scan: {label_file}")
-            # os.remove(label_path)
+            os.remove(label_path)
             logger.info(f"{label_file} is removed.")
             continue
 
@@ -55,7 +55,7 @@ for label_file in label_files:
         except Exception as e:
             logger.error(f"Error loading label file {label_num}: {label_file} - {str(e)}")
             # If there's an error loading the file, remove it and log the error
-            # os.remove(label_path)
+            os.remove(label_path)
             continue
 
         # Compute the volume of the label file
@@ -76,6 +76,10 @@ logger.info(f"Max label volume: {max_label_volume}")
 logger.info(f"Min label volume: {min_label_volume}")
 
 for scan_file in scan_files:
+    # Check if the file already exists in the destination path
+    if scan_file in os.listdir(scans_preprocessing_folder):
+        logger.warning(f"File exists in {scans_preprocessing_folder}: {scan_file}")
+        continue
     # Check if the file has a .nii extension (case-insensitive)
     if scan_file.lower().endswith('.nii'):
         scan_path = os.path.join(scans_folder, scan_file)
@@ -92,9 +96,9 @@ for scan_file in scan_files:
             scan_img = nib.load(scan_path)
         except:
             # If there's an error loading the file, remove it and log the error
-            # os.remove(scan_path)
+            os.remove(scan_path)
             if flag:
-                # os.remove(label_path)
+                os.remove(label_path)
                 logger.error(f"Error loading scan file {scan_num}: {label_file} removed.")
                 flag = False
             logger.error(
@@ -102,14 +106,17 @@ for scan_file in scan_files:
             continue
 
         if flag:
-            print(scan_img.shape, label_img.shape)
-            scale_factor = compute_scale_factor(label_img, desired_volume=105 if get_serie(scan_num) == 2 else 90)
+            if get_serie(scan_num) == 7:
+                scale_factor = 1.3
+            elif get_serie(scan_num) == 2:
+                scale_factor = compute_scale_factor(label_img, desired_volume=105)
+            else:
+                scale_factor = compute_scale_factor(label_img, desired_volume=90)
             if scale_factor:
                 scan_img = resize_nifti_image(scan_img, factor_size=scale_factor)
                 label_img = resize_nifti_image(label_img, factor_size=scale_factor, no_range_change=False, order=1)
                 logger.info(f"Resized scan and segmentation {scan_num} images with scale factor: {scale_factor} to "
                             f"new shape: {scan_img.shape}")
-                print(scan_img.shape, label_img.shape)
         # Read NIfTI image information
         scan_data = read_nifti_info(scan_img)
 
@@ -139,7 +146,7 @@ for scan_file in scan_files:
         logger.info(f"Scan {scan_file} copied to folder: {scan_dest_path}")
 
         # Check if the label file exists
-        if flag:
+        if flag and get_serie(scan_num) != 9:
             label_data = read_nifti_info(label_img)
 
             # Check if the image dimensions are the same for both files
@@ -175,17 +182,19 @@ for scan_file in scan_files:
                     new_affine = scan_img.affine
                     new_affine[:3, 3] = label_data['image_origin']
                     scan_img = nib.Nifti1Image(scan_img.get_fdata(), new_affine)
+                    logger.info(f"Updated scan image origin from  {scan_data['image_origin']} to {label_data['image_origin']}")
                 elif (label_data['image_origin'] == 0).all():
                     new_affine = label_img.affine
                     new_affine[:3, 3] = scan_data['image_origin']
                     label_img = nib.Nifti1Image(label_img.get_fdata(), new_affine)
+                    logger.info(f"Updated segmentation image origin from  {label_data['image_origin']} to {scan_data['image_origin']}")
                 else:
                     logger.error(f"Cannot make the image_origin the same for both scan and segmentation")
                     # continue
 
             if (label_data['ijk_to_ras_matrix'] != scan_data['ijk_to_ras_matrix']).any():
                 logger.warning(f"Not the same ijk_to_ras matrix for {scan_num} files. "
-                               f"scan: {scan_data['ijk_to_ras_matrix']} - segmentation: {label_data['ijk_to_ras_matrix']}")
+                               f"\nscan:\n{scan_data['ijk_to_ras_matrix']}\nsegmentation:\n{label_data['ijk_to_ras_matrix']}")
 
             # save data
             label_dest_path = os.path.join(labels_finetuning_folder, label_file)
