@@ -206,15 +206,13 @@ def rescale_array(data, new_min, new_max, dtype=None):
     return rescaled_data
 
 
-def read_nifti_info(nifti_file):
-    img = nib.load(nifti_file)
-
-    image_dimensions = img.shape
-    image_spacing = img.header.get_zooms()
-    image_origin = img.affine[:3, 3]
-    ijk_to_ras_matrix = img.affine[:3, :3]
-    scalar_dtype = img.get_data_dtype()
-    data_array = img.get_fdata()
+def read_nifti_info(nifti_img):
+    image_dimensions = nifti_img.shape
+    image_spacing = nifti_img.header.get_zooms()
+    image_origin = nifti_img.affine[:3, 3]
+    ijk_to_ras_matrix = nifti_img.affine[:3, :3]
+    scalar_dtype = nifti_img.get_data_dtype()
+    data_array = nifti_img.get_fdata()
     scalar_range = (data_array.min(), data_array.max())
 
     return {
@@ -225,6 +223,7 @@ def read_nifti_info(nifti_file):
         "scalar_dtype": scalar_dtype,
         "scalar_range": scalar_range
     }
+
 
 def zoom_image(data, affine, new_spacing):
     old_spacing = np.diag(affine)[:3]
@@ -257,12 +256,12 @@ def change_dtype(input_img, new_dtype):
     # Read the image data
     input_data = input_img.get_fdata()
 
-    # Check if the data type is the same as output_dtype
-    if input_img.get_data_dtype() == new_dtype:
-        return input_img
-
     # Convert the input data to the desired output data type
-    converted_data = input_data.astype(new_dtype)
+
+    if input_img.get_data_dtype() == new_dtype:
+        converted_data = input_data.astype(new_dtype)
+    else:
+        converted_data = input_data
 
     # Update the header to reflect the new data type
     new_header = input_img.header.copy()
@@ -287,7 +286,13 @@ def resize_and_resample_nifti(input_img, scale_factor=0.5, desired_spacing=None,
 
         # Resize the image data
         resized_data = zoom(input_data, resize_factors, order=order)  # Linear interpolation (order=1)
-        resized_img = nib.Nifti1Image(resized_data, input_affine)
+
+        # Update the affine matrix with the new scale factors
+        new_affine = input_affine.copy()
+        for i in range(3):
+            new_affine[i, i] = input_affine[i, i] / resize_factors[i]
+
+        resized_img = nib.Nifti1Image(resized_data, new_affine)
     else:
         resized_img = input_img
 
@@ -297,8 +302,36 @@ def resize_and_resample_nifti(input_img, scale_factor=0.5, desired_spacing=None,
     # Resample the resized image data to the desired spacing
     resampled_img = resample_nifti_img(resized_img, desired_spacing, order)  # Linear interpolation (order=1)
 
+    resized_img = change_dtype(resized_img, new_dtype='int16')
     # Return the new scaled and resampled NIfTI image
-    return resampled_img
+    return resized_img, resampled_img
+
+
+def resize_nifti_image(input_nifti_img, factor_size, order=3, no_range_change=True):
+    # Load the input NIfTI data
+    img_data = input_nifti_img.get_fdata()
+
+    # Rescale image dimensions using scipy's ndimage.zoom function
+    new_shape = tuple(np.array(img_data.shape) * factor_size)
+    # Rescale image dimensions using scipy's ndimage.zoom function
+    rescaled_data = zoom(img_data, factor_size, order=order)  # Use order=3 (cubic interpolation) to maintain quality
+
+    # Calculate the new affine matrix for the rescaled image
+    scale = np.diag([factor_size, factor_size, factor_size, 1])
+    new_affine = np.matmul(input_nifti_img.affine, np.linalg.inv(scale))
+
+    if no_range_change:
+        rescaled_data = rescale_array(rescaled_data, new_min=np.min(img_data), new_max=np.max(img_data))
+
+    # Create a new NIfTI image with the rescaled data and the new affine matrix
+    rescaled_img = nib.Nifti1Image(rescaled_data, new_affine, input_nifti_img.header)
+
+    # Update the header to reflect the new dimensions and save the rescaled image
+    rescaled_img.header.set_zooms(input_nifti_img.header.get_zooms()[:3])
+
+    converted_img = change_dtype(rescaled_img, input_nifti_img.get_data_dtype())
+
+    return converted_img
 
 
 def load_dicom_file(filepath):
@@ -356,6 +389,57 @@ def rescale_nifti_image(data, affine, new_dims, order=1):
     return rescaled_data, new_affine
 
 
+def compute_scale_factor(label_img, desired_volume=100, epsilon=0.001, volume_epsilon=3, max_iterations=10):
+    def get_resized_volume(scan_factor):
+        label_img_resized = resize_nifti_image(label_img, scan_factor, order=1, no_range_change=False)
+        return compute_volume(label_img_resized)
+
+    if desired_volume - volume_epsilon <= compute_volume(label_img) <= desired_volume + volume_epsilon:
+        return
+
+    scan_factor_lb, scan_factor_ub = (1, desired_volume / compute_volume(label_img)) \
+        if (desired_volume / compute_volume(label_img)) > 1 \
+        else (desired_volume / compute_volume(label_img), 1)
+
+    iteration = 0
+    while iteration < max_iterations:
+        scan_factor = (scan_factor_lb + scan_factor_ub) / 2
+        resized_volume = get_resized_volume(scan_factor)
+        if desired_volume - volume_epsilon <= resized_volume <= desired_volume + volume_epsilon:
+            return round(scan_factor, 3)
+        elif resized_volume < desired_volume - volume_epsilon:
+            scan_factor_lb = scan_factor
+        else:
+            scan_factor_ub = scan_factor
+
+        # Check if the current search interval is within the epsilon range
+        if abs(scan_factor_ub - scan_factor_lb) < epsilon:
+            break
+        iteration += 1
+    return round(scan_factor, 3)
+
+import matplotlib.pyplot as plt
+
+
+def plot_3d_array_slices(data):
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+
+    # Plot slices along the X, Y, and Z axes
+    axes[0].imshow(data[data.shape[0] // 2, :, :], cmap='gray')
+    axes[0].set_title('X-axis slice')
+
+    axes[1].imshow(data[:, data.shape[1] // 2, :], cmap='gray')
+    axes[1].set_title('Y-axis slice')
+
+    axes[2].imshow(data[:, :, data.shape[2] // 2], cmap='gray')
+    axes[2].set_title('Z-axis slice')
+
+    for ax in axes:
+        ax.axis('off')
+
+    plt.show()
+
+
 def main():
     # input_folder = r"T:\CIHR Data\3) MicroCT\800-series\850\850_T13,L1,L2,L3,L4_ZR75_Untreated_MicroCT_2836"
     # output_filename = os.path.normpath(
@@ -373,10 +457,32 @@ def main():
     # scaled_image = resize_and_resample_nifti(nifti_image, scale_factor=0.2)
     # nib.save(scaled_image, output_filename)
     # print('DICOM to Nifti converted...')
-    nifti_img = load_as_nifti(
-        r"T:\CIHR Data\16) Stereology\1100-Series\1123_L2_Healthy_Untreated_Stereology\1123_L2_Trabecular_Segmentation.seg.nrrd")
-    processed_img = process_segmentation_image(nifti_img)
-    nib.save(processed_img, r'D:\vertebral-segmentation-rat-l2\data_preprocessing\file.nii')
+    # nifti_img = load_as_nifti(
+    #     r"T:\CIHR Data\16) Stereology\1100-Series\1123_L2_Healthy_Untreated_Stereology\1123_L2_Trabecular_Segmentation.seg.nrrd")
+    # processed_img = process_segmentation_image(nifti_img)
+    # nib.save(processed_img, r'D:\vertebral-segmentation-rat-l2\data_preprocessing\file.nii')
+    scan_path = r"D:\Rat_mCT_v1\scans\1130_scan_cropped.nii"
+    label_path = r"D:\Rat_mCT_v1\labels\1130_segmentation.nii"
+    scan_img = nib.load(scan_path)
+    label_img = nib.load(label_path)
+    # plot_3d_array_slices(scan_img.get_fdata())
+    # plot_3d_array_slices(label_img.get_fdata())
+    # print(compute_volume(label_img))
+    # scan_img_resized, scan_img_resampled = resize_and_resample_nifti(scan_img, 2)
+    # label_img_rescaled = resize_nifti_image(label_img, 1.5)
+    scale_factor = compute_scale_factor(label_img, desired_volume=90, volume_epsilon=3)
+    if scale_factor:
+        scan_img_rescaled = resize_nifti_image(scan_img, factor_size=scale_factor)
+    if scale_factor:
+        label_img_rescaled = resize_nifti_image(label_img, factor_size=scale_factor, no_range_change=False, order=1)
+    # nib.save(scan_img_resampled, r"D:\vertebral-segmentation-rat-l2\data_preprocessing\915_scan_img_resampled.nii")
+    # nib.save(scan_img_resized, r"D:\vertebral-segmentation-rat-l2\data_preprocessing\915_scan_img_resized.nii")
+    print(compute_volume(label_img_rescaled))
+
+    nib.save(scan_img_rescaled, r"D:\vertebral-segmentation-rat-l2\data_preprocessing\1130_scan_img_rescaled.nii")
+    nib.save(label_img_rescaled, r"D:\vertebral-segmentation-rat-l2\data_preprocessing\1130_label_img_rescaled.nii")
+
+    print("output...")
 
 
 if __name__ == "__main__":
