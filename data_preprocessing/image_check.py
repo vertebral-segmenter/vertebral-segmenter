@@ -137,7 +137,7 @@ for scan_file in scan_files:
             logger.warning(f"Scan {scan_num} file size larger than 150 MB: {scan_size_mb}")
 
         # Check the scan scalar data range
-        if scan_data['scalar_range'][0] != -1000 or scan_data['scalar_range'][1] != 10000:
+        if scan_data['scalar_range'][0] != scan_data_lb or scan_data['scalar_range'][1] != scan_data_ub:
             logger.warning(f"Scan {scan_num} scalar data range: {scan_data['scalar_range']}")
 
         # save data
