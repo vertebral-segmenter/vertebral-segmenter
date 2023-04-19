@@ -8,6 +8,51 @@ import pydicom
 import os
 from tqdm import tqdm
 import nrrd
+import SimpleITK as sitk
+
+
+def sitk_to_nibabel(sitk_image):
+    # Get numpy array from the sitk image
+    np_array = sitk.GetArrayFromImage(sitk_image)
+
+    # Get image information
+    origin = np.array(sitk_image.GetOrigin())
+    spacing = np.array(sitk_image.GetSpacing())
+    direction = np.array(sitk_image.GetDirection()).reshape(len(spacing), -1)
+
+    # Calculate the affine transformation matrix
+    affine = np.eye(4)
+    affine[:3, :3] = np.diag(spacing).dot(direction)
+    affine[:3, 3] = origin
+
+    # Create a Nibabel image using the numpy array and the affine transformation matrix
+    nib_image = nib.Nifti1Image(np_array, affine)
+
+    return nib_image
+
+
+def zoom_image(input_nifti_file, scale_factor):
+    # Load the input NIfTI image
+    img = sitk.ReadImage(input_nifti_file)
+
+    # Calculate the new size
+    new_size = tuple(round(i * scale_factor) for i in img.GetSize())
+    # Calculate the new spacing
+    old_spacing = img.GetSpacing()
+    new_spacing = tuple(np.array(old_spacing) * (np.array(img.GetSize()) / np.array(new_size)))
+
+    # Create a resampler with NearestNeighbor interpolation to preserve binary values
+    resampler = sitk.ResampleImageFilter()
+    resampler.SetSize(new_size)
+    resampler.SetOutputSpacing(new_spacing)
+    resampler.SetOutputOrigin(img.GetOrigin())
+    resampler.SetOutputDirection(img.GetDirection())
+    resampler.SetInterpolator(sitk.sitkLabelGaussian)
+
+    # Resample the input image
+    resized_img = resampler.Execute(img)
+
+    return sitk_to_nibabel(resized_img)
 
 
 def nrrd_header_to_nifti_affine(header):
@@ -225,13 +270,13 @@ def read_nifti_info(nifti_img):
     }
 
 
-def zoom_image(data, affine, new_spacing):
-    old_spacing = np.diag(affine)[:3]
-    zoom_factors = old_spacing / new_spacing
-    resampled_data = zoom(data, zoom_factors, order=5)
-    new_affine = np.copy(affine)
-    np.fill_diagonal(new_affine, np.append(new_spacing, 1))
-    return resampled_data, new_affine
+# def zoom_image(data, affine, new_spacing):
+#     old_spacing = np.diag(affine)[:3]
+#     zoom_factors = old_spacing / new_spacing
+#     resampled_data = zoom(data, zoom_factors, order=5)
+#     new_affine = np.copy(affine)
+#     np.fill_diagonal(new_affine, np.append(new_spacing, 1))
+#     return resampled_data, new_affine
 
 
 def convert_nii_gz_to_nii(gz_file_path, nii_file_path):
@@ -418,6 +463,7 @@ def compute_scale_factor(label_img, desired_volume=100, epsilon=0.001, volume_ep
         iteration += 1
     return round(scan_factor, 3)
 
+
 import matplotlib.pyplot as plt
 
 
@@ -461,26 +507,37 @@ def main():
     #     r"T:\CIHR Data\16) Stereology\1100-Series\1123_L2_Healthy_Untreated_Stereology\1123_L2_Trabecular_Segmentation.seg.nrrd")
     # processed_img = process_segmentation_image(nifti_img)
     # nib.save(processed_img, r'D:\vertebral-segmentation-rat-l2\data_preprocessing\file.nii')
-    scan_path = r"D:\Rat_mCT_v1\scans\1130_scan_cropped.nii"
-    label_path = r"D:\Rat_mCT_v1\labels\1130_segmentation.nii"
+    scan_path = r"D:\Rat_mCT_v1\scans\2007_scan_cropped.nii"
+    label_path = r"D:\Rat_mCT_v1\labels\2007_segmentation.nii"
     scan_img = nib.load(scan_path)
     label_img = nib.load(label_path)
     # plot_3d_array_slices(scan_img.get_fdata())
     # plot_3d_array_slices(label_img.get_fdata())
-    # print(compute_volume(label_img))
+    print(compute_volume(label_img))
     # scan_img_resized, scan_img_resampled = resize_and_resample_nifti(scan_img, 2)
     # label_img_rescaled = resize_nifti_image(label_img, 1.5)
-    scale_factor = compute_scale_factor(label_img, desired_volume=90, volume_epsilon=3)
-    if scale_factor:
-        scan_img_rescaled = resize_nifti_image(scan_img, factor_size=scale_factor)
-    if scale_factor:
-        label_img_rescaled = resize_nifti_image(label_img, factor_size=scale_factor, no_range_change=False, order=1)
+    # if scale_factor:
+    #     scan_img_rescaled = resize_nifti_image(scan_img, factor_size=scale_factor)
+    # if scale_factor:
+    #     label_img_rescaled = resize_nifti_image(label_img, factor_size=scale_factor, no_range_change=False, order=1)
     # nib.save(scan_img_resampled, r"D:\vertebral-segmentation-rat-l2\data_preprocessing\915_scan_img_resampled.nii")
     # nib.save(scan_img_resized, r"D:\vertebral-segmentation-rat-l2\data_preprocessing\915_scan_img_resized.nii")
-    print(compute_volume(label_img_rescaled))
+    # print(compute_volume(label_img_rescaled))
 
-    nib.save(scan_img_rescaled, r"D:\vertebral-segmentation-rat-l2\data_preprocessing\1130_scan_img_rescaled.nii")
-    nib.save(label_img_rescaled, r"D:\vertebral-segmentation-rat-l2\data_preprocessing\1130_label_img_rescaled.nii")
+    # label_img_resampled = resample_to_output(label_img, (0.07, 0.07, 0.07), order=3)
+    # nib.save(label_img_resampled, r"D:\vertebral-segmentation-rat-l2\data_preprocessing\1021_label_img_resampled.nii")
+    scale_factor = compute_scale_factor(label_img, desired_volume=90, volume_epsilon=3)
+    scale_factor = 1.2
+    # zoom_image(label_path, r"D:\vertebral-segmentation-rat-l2\data_preprocessing"
+    #                                            r"\2007_label_img_resampled.nii", scale_factor=scale_factor)
+    #
+    # zoom_image(scan_path,
+    #                                r"D:\vertebral-segmentation-rat-l2\data_preprocessing\2007_scan_img_resampled.nii",
+    #                                scale_factor=scale_factor)
+    img = nib.load(r"D:\vertebral-segmentation-rat-l2\data_preprocessing\2007_scan_img_resampled.nii")
+    print(img.get_fdata().shape)
+    # nib.save(scan_img_rescaled, r"D:\vertebral-segmentation-rat-l2\data_preprocessing\1021_scan_img_rescaled.nii")
+    # nib.save(label_img_rescaled, r"D:\vertebral-segmentation-rat-l2\data_preprocessing\1021_label_img_rescaled.nii")
 
     print("output...")
 

@@ -6,7 +6,7 @@ import re
 
 from data_preprocessing.image_analysis.data_extraction import setup_logger, scan_number
 from data_preprocessing.image_analysis.nifti_processing import convert_nii_gz_to_nii, change_dtype, resample_nifti_img, \
-    read_nifti_info, compute_volume, compute_scale_factor, resize_nifti_image
+    read_nifti_info, compute_volume, compute_scale_factor, resize_nifti_image, zoom_image
 
 scans_preprocessing_folder = "D:\Rat_mCT_v1\pre-processing"
 scans_finetuning_folder = "D:\Rat_mCT_v1\\finetuning\scans"
@@ -113,8 +113,8 @@ for scan_file in scan_files:
             else:
                 scale_factor = compute_scale_factor(label_img, desired_volume=90)
             if scale_factor:
-                scan_img = resize_nifti_image(scan_img, factor_size=scale_factor)
-                label_img = resize_nifti_image(label_img, factor_size=scale_factor, no_range_change=False, order=1)
+                scan_img = zoom_image(scan_path, scale_factor)
+                label_img = zoom_image(label_path, scale_factor)
                 logger.info(f"Resized scan and segmentation {scan_num} images with scale factor: {scale_factor} to "
                             f"new shape: {scan_img.shape}")
         # Read NIfTI image information
@@ -123,7 +123,7 @@ for scan_file in scan_files:
         # Check if the image spacing is as desired
         if np.abs(np.array(scan_data['image_spacing']) - desired_spacing).sum() > 0.01:
             logger.error(f"Undesired image spacing for scan {scan_num} file: {scan_data['image_spacing']}")
-            continue
+            # continue
 
         # Check if the data type of the scan is as desired
         if scan_data['scalar_dtype'] != desired_scan_dtype:
@@ -159,7 +159,7 @@ for scan_file in scan_files:
             # Check if the image spacing for the label file is as desired
             if np.abs(np.array(label_data['image_spacing']) - desired_spacing).sum() > 0.01:
                 logger.error(f"Undesired image spacing for segmentation {scan_num} file: {label_data['image_spacing']}")
-                continue
+                # continue
 
             # Check if the data type of the label file is as desired
             if label_data['scalar_dtype'] != desired_label_dtype:
