@@ -23,7 +23,7 @@ class R2BoneMetric(CumulativeIterationMetric):
         super().__init__()
         self.reduction = reduction
 
-    def _compute_tensor(self, y_pred: torch.Tensor, y: torch.Tensor = None):  # type: ignore
+    def _compute_tensor(self, y_pred: torch.Tensor, y: torch.Tensor):  # type: ignore
         """
         Args:
             y_pred: input data to compute, typical segmentation model output.
@@ -75,6 +75,7 @@ if __name__ == "__main__":
     shape = (100, 1, 96, 96, 96)
     y_true = torch.randint(0, 2, size=shape, dtype=torch.bool)
     y_pred = torch.randint(0, 2, size=shape, dtype=torch.bool)  # => negative
-    print(R2BoneMetric()._compute_tensor(y_true, y_pred))
+    acc_func = R2BoneMetric()
+    print(acc_func(y_true, y_pred))
     y_pred = y_true  # => 1
-    print(R2BoneMetric()._compute_tensor(y_true, y_pred))
+    print(acc_func(y_true, y_pred))

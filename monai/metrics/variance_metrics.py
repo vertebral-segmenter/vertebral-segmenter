@@ -6,7 +6,7 @@ import torch
 from monai.metrics.utils import do_metric_reduction
 from monai.utils import MetricReduction
 
-from metric import CumulativeIterationMetric
+from monai.metrics.metric import CumulativeIterationMetric
 
 
 class VarianceMetric(CumulativeIterationMetric):
@@ -24,7 +24,7 @@ class VarianceMetric(CumulativeIterationMetric):
         self.reduction = reduction
         self.true_variance = true_variance
 
-    def _compute_tensor(self, y_pred: torch.Tensor, y: torch.Tensor = None):  # type: ignore
+    def _compute_tensor(self, y_pred: torch.Tensor, y: torch.Tensor):  # type: ignore
         """
         Args:
             y_pred: input data to compute, typical segmentation model output.
