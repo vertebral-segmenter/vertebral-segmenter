@@ -9,8 +9,8 @@ from data_preprocessing.image_analysis.nifti_processing import convert_nii_gz_to
     read_nifti_info, compute_volume, compute_scale_factor, resize_nifti_image
 
 scans_preprocessing_folder = "D:\Rat_mCT_v1\pre-processing"
-scans_finetuning_folder = "D:\Rat_mCT_v1\finetuning\scans"
-labels_finetuning_folder = "D:\Rat_mCT_v1\finetuning\labels"
+scans_finetuning_folder = "D:\Rat_mCT_v1\\finetuning\scans"
+labels_finetuning_folder = "D:\Rat_mCT_v1\\finetuning\labels"
 
 scans_folder = r"D:\Rat_mCT_v1\scans"
 labels_folder = r"D:\Rat_mCT_v1\labels"
