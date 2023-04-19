@@ -16,6 +16,7 @@ from monai.inferers import sliding_window_inference
 from monai.losses import DiceCELoss
 from monai.losses import CustomLoss
 from monai.metrics import DiceMetric
+from monai.metrics import R2BoneMetric
 from monai.networks.nets import SwinUNETR
 from monai.networks.nets.swin_unetr_dilated import DilSwinUNETR
 from monai.transforms import Activations, AsDiscrete, Compose
@@ -24,7 +25,7 @@ from monai.data.nifti_saver import NiftiSaver
 from monai.networks import one_hot
 
 # To prevent CUDA memory fragmentation
-os.environ['PYTORCH_CUDA_ALLOC_CONF'] = "max_split_size_mb:256"
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = "max_split_size_mb:512"
 
 parser = argparse.ArgumentParser(description="Swin UNETR segmentation pipeline")
 parser.add_argument("--checkpoint", default=None, help="start training from saved checkpoint")
@@ -65,9 +66,9 @@ parser.add_argument("--a_min", default=-1000, type=float, help="a_min in ScaleIn
 parser.add_argument("--a_max", default=1000, type=float, help="a_max in ScaleIntensityRanged")
 parser.add_argument("--b_min", default=0.0, type=float, help="b_min in ScaleIntensityRanged")
 parser.add_argument("--b_max", default=1.0, type=float, help="b_max in ScaleIntensityRanged")
-parser.add_argument("--space_x", default=1.5, type=float, help="spacing in x direction")
-parser.add_argument("--space_y", default=1.5, type=float, help="spacing in y direction")
-parser.add_argument("--space_z", default=2.0, type=float, help="spacing in z direction")
+parser.add_argument("--space_x", default=0.035, type=float, help="spacing in x direction")
+parser.add_argument("--space_y", default=0.035, type=float, help="spacing in y direction")
+parser.add_argument("--space_z", default=0.035, type=float, help="spacing in z direction")
 parser.add_argument("--roi_x", default=96, type=int, help="roi size in x direction")
 parser.add_argument("--roi_y", default=96, type=int, help="roi size in y direction")
 parser.add_argument("--roi_z", default=96, type=int, help="roi size in z direction")
@@ -231,6 +232,7 @@ def main_worker(gpu, args):
     post_label = AsDiscrete(to_onehot=True, n_classes=args.out_channels)
     post_pred = AsDiscrete(argmax=True, to_onehot=True, n_classes=args.out_channels)
     dice_acc = DiceMetric(include_background=True, reduction=MetricReduction.MEAN, get_not_nans=True)
+    r2_acc = R2BoneMetric()
     model_inferer = partial(
         sliding_window_inference,
         roi_size=inf_size,
@@ -288,13 +290,38 @@ def main_worker(gpu, args):
             scheduler.step(epoch=start_epoch)
     else:
         scheduler = None
+
+    # test r2 square
+    test_r2_metric = True
+    if test_r2_metric:
+        # from finetune.trainer import val_epoch
+        # val_avg_acc = val_epoch(
+        #     model,
+        #     loader[1],
+        #     epoch=0,
+        #     acc_func=r2_acc,
+        #     model_inferer=model_inferer,
+        #     args=args,
+        #     post_label=post_label,
+        #     post_pred=post_pred,
+        # )
+        # val_avg_acc = np.mean(val_avg_acc)
+        # print(
+        #     "Final validation  {}/{}".format(0, args.max_epochs - 1),
+        #     "acc",
+        #     val_avg_acc,
+        # )
+        # exit(0)
+        args.val_every = 1
+        args.max_epochs = start_epoch + 1
+
     accuracy = run_training(
         model=model,
         train_loader=loader[0],
         val_loader=loader[1],
         optimizer=optimizer,
         loss_func=dice_loss,
-        acc_func=dice_acc,
+        acc_func=r2_acc,
         args=args,
         model_inferer=model_inferer,
         scheduler=scheduler,
