@@ -72,8 +72,8 @@ max_label_volume = max(label_volumes)
 min_label_volume = min(label_volumes)
 
 # Log the maximum and minimum label volumes
-logger.info(f"Max label volume: {max_label_volume}")
-logger.info(f"Min label volume: {min_label_volume}")
+logger.info(f"\nMax label volume: {max_label_volume}")
+logger.info(f"Min label volume: {min_label_volume}\n")
 
 for scan_file in scan_files:
     # Check if the file already exists in the destination path
@@ -143,7 +143,7 @@ for scan_file in scan_files:
         # save data
         scan_dest_path = os.path.join(scans_preprocessing_folder, scan_file)
         nib.save(label_img, scan_dest_path)
-        logger.info(f"Scan {scan_file} copied to folder: {scan_dest_path}")
+        logger.info(f">Scan {scan_file} copied to folder: {scan_dest_path}")
 
         # Check if the label file exists
         if flag and get_serie(scan_num) != 9:
@@ -199,10 +199,10 @@ for scan_file in scan_files:
             # save data
             label_dest_path = os.path.join(labels_finetuning_folder, label_file)
             nib.save(label_img, label_dest_path)
-            logger.info(f"Segmentation {label_file} copied to folder: {label_dest_path}")
+            logger.info(f">Segmentation {label_file} copied to folder: {label_dest_path}")
 
             scan_dest_path = os.path.join(scans_finetuning_folder, scan_file)
             nib.save(label_img, scan_dest_path)
-            logger.info(f"Scan {scan_file} copied to folder: {scan_dest_path}")
+            logger.info(f">Scan {scan_file} copied to folder: {scan_dest_path}")
 
 
