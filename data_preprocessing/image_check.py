@@ -72,8 +72,8 @@ max_label_volume = max(label_volumes)
 min_label_volume = min(label_volumes)
 
 # Log the maximum and minimum label volumes
-logger.info(f"\nMax label volume: {max_label_volume}")
-logger.info(f"Min label volume: {min_label_volume}\n")
+logger.info(f"Max label volume: {max_label_volume}")
+logger.info(f"Min label volume: {min_label_volume}")
 
 for scan_file in scan_files:
     # Check if the file already exists in the destination path
