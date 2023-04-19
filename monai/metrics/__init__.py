@@ -20,3 +20,4 @@ from .rocauc import ROCAUCMetric, compute_roc_auc
 from .surface_dice import SurfaceDiceMetric, compute_surface_dice
 from .surface_distance import SurfaceDistanceMetric, compute_average_surface_distance
 from .utils import do_metric_reduction, get_mask_edges, get_surface_distance, ignore_background
+from .R2Bone import R2BoneMetric

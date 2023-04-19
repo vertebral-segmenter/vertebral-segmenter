@@ -6,7 +6,7 @@ import torch
 from monai.metrics.utils import do_metric_reduction
 from monai.utils import MetricReduction
 
-from metric import CumulativeIterationMetric
+from monai.metrics import CumulativeIterationMetric
 
 
 class R2BoneMetric(CumulativeIterationMetric):
