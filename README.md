@@ -146,7 +146,12 @@ python scripts/create_finetune_dataset_json.py
 
 ### Get pretrain model weights
 
-If you skipped the pretrain steps above, you can still get our pretrain model weigths from [here](https://drive.google.com/drive/folders/1XYCtB7EQ-yRIg7s3nC9l1bqPng8yEIOZ?usp=share_link). Store the `.pt` files under foler `pretrain/pretrained_models`.
+If you skipped the pretrain steps above, you can still get our pretrain model weigths from [here](https://drive.google.com/drive/folders/1XYCtB7EQ-yRIg7s3nC9l1bqPng8yEIOZ?usp=share_link). Store the `.pt` files under foler `pretrain/pretrained_models`. Their corresponding training logs are in `pretrain-{jobid}.out`, the jobid associate with the model checkpoint suffix.
+
+### Get final model weights
+
+The final model weights after finetune can be obtained [here](https://drive.google.com/drive/folders/1XYCtB7EQ-yRIg7s3nC9l1bqPng8yEIOZ?usp=share_link). Their corresponding training logs are in `pretrain-{jobid}.out`. The experiment name is located in the output file and the experiment name should match the model folder.
+
 
 ### Run training
 

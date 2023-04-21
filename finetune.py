@@ -17,6 +17,7 @@ from monai.losses import DiceCELoss
 from monai.losses import CustomLoss
 from monai.metrics import DiceMetric
 from monai.metrics import R2BoneMetric
+from monai.metrics import VarianceMetric
 from monai.networks.nets import SwinUNETR
 from monai.networks.nets.swin_unetr_dilated import DilSwinUNETR
 from monai.transforms import Activations, AsDiscrete, Compose
@@ -233,6 +234,7 @@ def main_worker(gpu, args):
     post_pred = AsDiscrete(argmax=True, to_onehot=True, n_classes=args.out_channels)
     dice_acc = DiceMetric(include_background=True, reduction=MetricReduction.MEAN, get_not_nans=True)
     r2_acc = R2BoneMetric()
+    var_acc = VarianceMetric()
     model_inferer = partial(
         sliding_window_inference,
         roi_size=inf_size,
@@ -292,26 +294,8 @@ def main_worker(gpu, args):
         scheduler = None
 
     # test r2 square
-    test_r2_metric = True
+    test_r2_metric = False
     if test_r2_metric:
-        # from finetune.trainer import val_epoch
-        # val_avg_acc = val_epoch(
-        #     model,
-        #     loader[1],
-        #     epoch=0,
-        #     acc_func=r2_acc,
-        #     model_inferer=model_inferer,
-        #     args=args,
-        #     post_label=post_label,
-        #     post_pred=post_pred,
-        # )
-        # val_avg_acc = np.mean(val_avg_acc)
-        # print(
-        #     "Final validation  {}/{}".format(0, args.max_epochs - 1),
-        #     "acc",
-        #     val_avg_acc,
-        # )
-        # exit(0)
         args.val_every = 1
         args.max_epochs = start_epoch + 1
 
@@ -321,7 +305,7 @@ def main_worker(gpu, args):
         val_loader=loader[1],
         optimizer=optimizer,
         loss_func=dice_loss,
-        acc_func=r2_acc,
+        acc_func=var_acc,
         args=args,
         model_inferer=model_inferer,
         scheduler=scheduler,
