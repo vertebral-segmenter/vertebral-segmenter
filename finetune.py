@@ -305,7 +305,7 @@ def main_worker(gpu, args):
         val_loader=loader[1],
         optimizer=optimizer,
         loss_func=dice_loss,
-        acc_func=var_acc,
+        acc_func=dice_acc,
         args=args,
         model_inferer=model_inferer,
         scheduler=scheduler,
