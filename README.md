@@ -50,7 +50,7 @@ Get previous pretrained weights `model_swinvit.pt` from [here](https://github.co
 
 ```sh
 # Where data reside on bender
-LOCAL_DIR=/home/sherryyuan/rat_dataset
+LOCAL_DIR=/home/smsmt/Rat_mCT_new
 # Where data reside on compute canada (CC), make sure this folder exist on CC
 CC_DIR=/scratch/yuanshe5/vertebral-segmentation-rat-l2/pretrain/data/
 
@@ -66,6 +66,17 @@ LOCAL_DIR=/home/smsmt/datasets/Rat_mCT_train_v0
 CC_DIR=/scratch/c/cwhyne/yuanshe5/vertebral-segmentation-rat-l2/finetune/data/
 
 scp -i ~/.ssh/bitbucket -r ${LOCAL_DIR}/. yuanshe5@niagara.scinet.utoronto.ca:${CC_DIR}
+```
+
+4. Run the following command to copy source data for finetune
+
+```sh
+# Where data reside on bender
+LOCAL_DIR=/home/smsmt/datasets/Rat_mCT_v1
+# Where data reside on compute canada (CC), make sure this folder exist on CC
+CC_DIR=/scratch/c/cwhyne/yuanshe5/vertebral-segmentation-rat-l2/finetune/data/
+
+scp -i ~/.ssh/bitbucket -r ${LOCAL_DIR}/* yuanshe5@niagara.scinet.utoronto.ca:${CC_DIR}
 ```
 
 Then in CC, run the following to scale intensity between -1000 to 1000 and prepare dataset json
