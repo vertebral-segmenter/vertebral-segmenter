@@ -36,6 +36,8 @@ class R2BoneMetric(CumulativeIterationMetric):
             ValueError: when `y` is not a binarized tensor.
             ValueError: when `y_pred` has less than three dimensions.
         """
+        raise NotImplementedError
+
         if not isinstance(y_pred, torch.Tensor) or not isinstance(y, torch.Tensor):
             raise ValueError("y_pred and y must be PyTorch Tensor.")
         if not torch.all(y_pred.byte() == y_pred):

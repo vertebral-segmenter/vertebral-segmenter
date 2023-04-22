@@ -66,3 +66,27 @@ def distributed_all_gather(
                 gather_list = [t.cpu().numpy() for t in gather_list]
             tensor_list_out.append(gather_list)
     return tensor_list_out
+
+
+class R2Metric(object):
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.count = 0
+        self.sum = 0
+        self.sum_sq = 0
+        self.sum_res_sq = 0
+
+    def update(self, y_true, y_pred):
+        self.count += 1
+        self.sum += y_true
+        self.sum_sq += y_true**2
+        self.sum_res_sq += (y_true - y_pred)**2
+
+    def get_result(self):
+        if self.count == 0:
+            print("Empty R2Metric")
+            return -1e6
+        denominator = self.sum_sq - self.sum**2 / self.count
+        return 1 - self.sum_res_sq / denominator
