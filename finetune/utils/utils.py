@@ -94,7 +94,7 @@ class R2Metric(object):
         self.sum_res_sq += (y_true - y_pred)**2
 
     def get_result(self):
-        if self.count == 0:
+        if self.count <= 1:
             print("Empty R2Metric")
             return -1e6
         denominator = self.sum_sq - self.sum**2 / self.count
