@@ -139,6 +139,8 @@ finetune/data_scaled/
 finetune/model_inputs/
 pretrain/jsons/*.json
 finetune/jsons/*.json
+finetune/outputs_test/**
+finetune/outputs_val/**
 finetune/outputs/**
 finetune/dataset/**
 data/**

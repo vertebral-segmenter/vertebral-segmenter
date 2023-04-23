@@ -51,8 +51,9 @@ parser.add_argument("--to_save", default=True, type=bool, help="save seg results
 
 def main():
     args = parser.parse_args()
-    args.test_mode = True
-    output_directory = "finetune/outputs/" + args.exp_name
+    args.test_mode = False
+    args.val_mode = True
+    output_directory = "finetune/outputs_val/" + args.exp_name
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
     val_loader = get_loader(args)
@@ -135,6 +136,71 @@ def main():
         print("Overall BV R2-value: {}".format(bv_R2.get_result()))
         print("Overall BV/TV R2-value: {}".format(bvtv_R2.get_result()))
 
+# Run inference on test images
+def test():
+    args = parser.parse_args()
+    args.test_mode = True
+    args.val_mode = False
+    output_directory = "finetune/outputs_test/" + args.exp_name
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)
+    val_loader = get_loader(args)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    pretrained_pth = args.model
+    if args.use_dilated_swin:
+        model = DilSwinUNETR(
+            img_size=(args.roi_x, args.roi_y, args.roi_z),
+            in_channels=args.in_channels,
+            out_channels=args.out_channels,
+            feature_size=args.feature_size,
+            drop_rate=0.0,
+            attn_drop_rate=0.0,
+            dropout_path_rate=0.0,
+            use_checkpoint=args.use_checkpoint,
+        )
+    else:
+        model = SwinUNETR(
+            img_size=(args.roi_x, args.roi_y, args.roi_z),
+            in_channels=args.in_channels,
+            out_channels=args.out_channels,
+            feature_size=args.feature_size,
+            drop_rate=0.0,
+            attn_drop_rate=0.0,
+            dropout_path_rate=0.0,
+            use_checkpoint=args.use_checkpoint,
+        )
+
+    model_dict = torch.load(pretrained_pth)["state_dict"]
+    model.load_state_dict(model_dict)
+    model.eval()
+    model.to(device)
+
+    with torch.no_grad():
+        dice_list_case = []
+        bv_R2 = R2Metric()
+        bvtv_R2 = R2Metric()
+
+        for i, batch in enumerate(val_loader):
+            val_inputs = batch["image"].cuda()
+            original_affine = batch["image_meta_dict"]["original_affine"][0].numpy()
+            _,h, w, d, _, _, _, _ = batch["image_meta_dict"]['dim'][0].numpy()
+            target_shape = (h, w, d)
+            img_name = batch["image_meta_dict"]["filename_or_obj"][0].split("/")[-1]
+            print("Inference on case {}".format(img_name))
+            val_outputs = sliding_window_inference(
+                val_inputs, (args.roi_x, args.roi_y, args.roi_z), 4, model, overlap=args.infer_overlap, mode="gaussian" #TODO remove mode
+            )
+            val_outputs = torch.softmax(val_outputs, 1).cpu().numpy()
+            val_outputs = np.argmax(val_outputs, axis=1).astype(np.uint8)[0]
+            val_outputs = resample_3d(val_outputs, target_shape)
+
+            if args.to_save:
+                nib.save(
+                    nib.Nifti1Image(val_outputs.astype(np.uint8), original_affine), os.path.join(output_directory, img_name)
+                )
+
+
 
 if __name__ == "__main__":
-    main()
+    main() # validation
+    test() # test inference

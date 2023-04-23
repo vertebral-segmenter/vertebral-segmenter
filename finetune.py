@@ -121,6 +121,7 @@ def main_worker(gpu, args):
     torch.cuda.set_device(args.gpu)
     torch.backends.cudnn.benchmark = True
     args.test_mode = False
+    args.val_mode = False
     loader = get_loader(args)
     test_custom_loss = False
     if test_custom_loss:
