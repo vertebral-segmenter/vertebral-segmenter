@@ -172,14 +172,14 @@ This trains the model and run different combination of parameter (stated below)
 3. SwinUNETR / DilatedSwinUNETR (our custom architectural modification) 
 
 ```sh
-sbatch run_finetune.sh --use_dilated_swin --logdir="dilation_regloss_nopretrain" --optim_lr=1e-4 --regular_dice --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit.pt
-sbatch run_finetune.sh --use_dilated_swin --logdir="dilation_regloss_pretrain" --optim_lr=1e-4 --regular_dice --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit_dilation_370768.pt
-sbatch run_finetune.sh --use_dilated_swin --logdir="dilation_customloss_nopretrain" --optim_lr=1e-4 --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit.pt
-sbatch run_finetune.sh --use_dilated_swin --logdir="dilation_customloss_pretrain" --optim_lr=1e-4 --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit_dilation_370768.pt
-sbatch run_finetune.sh --logdir="nodilation_regloss_nopretrain" --optim_lr=1e-4 --regular_dice --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit.pt
-sbatch run_finetune.sh --logdir="nodilation_regloss_pretrain" --optim_lr=1e-4 --regular_dice --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit_no_dilation_370767.pt
-sbatch run_finetune.sh --logdir="nodilation_customloss_nopretrain" --optim_lr=1e-4 --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit.pt
-sbatch run_finetune.sh --logdir="nodilation_customloss_pretrain" --optim_lr=1e-4 --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit_no_dilation_370767.pt
+sbatch run_finetune.sh --space_x=0.08 --space_y=0.08 --space_z=0.08 --use_dilated_swin --logdir="dilation_regloss_nopretrain_downsample" --optim_lr=1e-4 --regular_dice --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit.pt
+sbatch run_finetune.sh --space_x=0.08 --space_y=0.08 --space_z=0.08 --use_dilated_swin --logdir="dilation_regloss_pretrain_downsample" --optim_lr=1e-4 --regular_dice --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit_dilation_370768.pt
+sbatch run_finetune.sh --space_x=0.08 --space_y=0.08 --space_z=0.08 --use_dilated_swin --logdir="dilation_customloss_nopretrain_downsample" --optim_lr=1e-4 --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit.pt
+sbatch run_finetune.sh --space_x=0.08 --space_y=0.08 --space_z=0.08 --use_dilated_swin --logdir="dilation_customloss_pretrain_downsample" --optim_lr=1e-4 --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit_dilation_370768.pt
+sbatch run_finetune.sh --space_x=0.08 --space_y=0.08 --space_z=0.08 --logdir="nodilation_regloss_nopretrain_downsample" --optim_lr=1e-4 --regular_dice --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit.pt
+sbatch run_finetune.sh --space_x=0.08 --space_y=0.08 --space_z=0.08 --logdir="nodilation_regloss_pretrain_downsample" --optim_lr=1e-4 --regular_dice --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit_no_dilation_370767.pt
+sbatch run_finetune.sh --space_x=0.08 --space_y=0.08 --space_z=0.08 --logdir="nodilation_customloss_nopretrain_downsample" --optim_lr=1e-4 --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit.pt
+sbatch run_finetune.sh --space_x=0.08 --space_y=0.08 --space_z=0.08 --logdir="nodilation_customloss_pretrain_downsample" --optim_lr=1e-4 --use_ssl_pretrained=pretrain/pretrained_models/model_swinvit_no_dilation_370767.pt
 ```
 
 ### Run inference
@@ -187,14 +187,14 @@ sbatch run_finetune.sh --logdir="nodilation_customloss_pretrain" --optim_lr=1e-4
 This runs inference using the trained model from the 8 experiments above.
 
 ```sh
-sbatch run_inference.sh --use_dilated_swin --exp_name="dilation_regloss_nopretrain" --model=finetune/runs/dilation_regloss_nopretrain_resume/model.pt
-sbatch run_inference.sh --use_dilated_swin --exp_name="dilation_regloss_pretrain" --model=finetune/runs/dilation_regloss_pretrain_resume/model.pt
-sbatch run_inference.sh --use_dilated_swin --exp_name="dilation_customloss_nopretrain" --model=finetune/runs/dilation_customloss_nopretrain/model.pt
-sbatch run_inference.sh --use_dilated_swin --exp_name="dilation_customloss_pretrain" --model=finetune/runs/dilation_customloss_pretrain/model.pt
-sbatch run_inference.sh --exp_name="nodilation_regloss_nopretrain" --model=finetune/runs/nodilation_regloss_nopretrain_resume/model.pt
-sbatch run_inference.sh --exp_name="nodilation_regloss_pretrain" --model=finetune/runs/nodilation_regloss_pretrain_resume/model.pt
-sbatch run_inference.sh --exp_name="nodilation_customloss_nopretrain" --model=finetune/runs/nodilation_customloss_nopretrain/model.pt
-sbatch run_inference.sh --exp_name="nodilation_customloss_pretrain" --model=finetune/runs/nodilation_customloss_pretrain/model.pt
+sbatch run_inference.sh --space_x=0.08 --space_y=0.08 --space_z=0.08 --use_dilated_swin --exp_name="dilation_regloss_nopretrain_downsample" --model=finetune/runs/dilation_regloss_nopretrain_downsample/model.pt
+sbatch run_inference.sh --space_x=0.08 --space_y=0.08 --space_z=0.08 --use_dilated_swin --exp_name="dilation_regloss_pretrain_downsample" --model=finetune/runs/dilation_regloss_pretrain_downsample/model.pt
+sbatch run_inference.sh --space_x=0.08 --space_y=0.08 --space_z=0.08 --use_dilated_swin --exp_name="dilation_customloss_nopretrain_downsample" --model=finetune/runs/dilation_customloss_nopretrain_downsample/model.pt
+sbatch run_inference.sh --space_x=0.08 --space_y=0.08 --space_z=0.08 --use_dilated_swin --exp_name="dilation_customloss_pretrain_downsample" --model=finetune/runs/dilation_customloss_pretrain_downsample/model.pt
+sbatch run_inference.sh --space_x=0.08 --space_y=0.08 --space_z=0.08 --exp_name="nodilation_regloss_nopretrain_downsample" --model=finetune/runs/nodilation_regloss_nopretrain_downsample/model.pt
+sbatch run_inference.sh --space_x=0.08 --space_y=0.08 --space_z=0.08 --exp_name="nodilation_regloss_pretrain_downsample" --model=finetune/runs/nodilation_regloss_pretrain_downsample/model.pt
+sbatch run_inference.sh --space_x=0.08 --space_y=0.08 --space_z=0.08 --exp_name="nodilation_customloss_nopretrain_downsample" --model=finetune/runs/nodilation_customloss_nopretrain_downsample/model.pt
+sbatch run_inference.sh --space_x=0.08 --space_y=0.08 --space_z=0.08 --exp_name="nodilation_customloss_pretrain_downsample" --model=finetune/runs/nodilation_customloss_pretrain_downsample/model.pt
 ```
 
 ### Expected folder structure
