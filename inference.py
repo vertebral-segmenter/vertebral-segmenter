@@ -11,6 +11,7 @@ from monai.inferers import sliding_window_inference
 from monai.networks.nets import SwinUNETR
 from monai.networks.nets.swin_unetr_dilated import DilSwinUNETR
 
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = "max_split_size_mb:512"
 
 parser = argparse.ArgumentParser(description="Swin UNETR segmentation pipeline")
 parser.add_argument(
@@ -22,9 +23,9 @@ parser.add_argument("--json_list", default="dataset_0.json", type=str, help="dat
 parser.add_argument("--feature_size", default=48, type=int, help="feature size")
 parser.add_argument("--infer_overlap", default=0.5, type=float, help="sliding window inference overlap")
 parser.add_argument("--in_channels", default=1, type=int, help="number of input channels")
-parser.add_argument("--out_channels", default=14, type=int, help="number of output channels")
-parser.add_argument("--a_min", default=-175.0, type=float, help="a_min in ScaleIntensityRanged")
-parser.add_argument("--a_max", default=250.0, type=float, help="a_max in ScaleIntensityRanged")
+parser.add_argument("--out_channels", default=2, type=int, help="number of output channels")
+parser.add_argument("--a_min", default=-1000.0, type=float, help="a_min in ScaleIntensityRanged")
+parser.add_argument("--a_max", default=8000.0, type=float, help="a_max in ScaleIntensityRanged")
 parser.add_argument("--b_min", default=0.0, type=float, help="b_min in ScaleIntensityRanged")
 parser.add_argument("--b_max", default=1.0, type=float, help="b_max in ScaleIntensityRanged")
 parser.add_argument("--space_x", default=0.035, type=float, help="spacing in x direction")
@@ -92,17 +93,13 @@ def main():
             img_name = batch["image_meta_dict"]["filename_or_obj"][0].split("/")[-1]
             print("Inference on case {}".format(img_name))
             val_outputs = sliding_window_inference(
-                val_inputs, (args.roi_x, args.roi_y, args.roi_z), 4, model, overlap=args.infer_overlap, mode="gaussian"
+                val_inputs, (args.roi_x, args.roi_y, args.roi_z), 4, model, overlap=args.infer_overlap, #mode="gaussian" #TODO remove mode
             )
             val_outputs = torch.softmax(val_outputs, 1).cpu().numpy()
             val_outputs = np.argmax(val_outputs, axis=1).astype(np.uint8)[0]
             val_labels = val_labels.cpu().numpy()[0, 0, :, :, :]
             val_outputs = resample_3d(val_outputs, target_shape)
-            dice_list_sub = []
-            for i in range(1, 2):
-                organ_Dice = dice(val_outputs == i, val_labels == i)
-                dice_list_sub.append(organ_Dice)
-            mean_dice = np.mean(dice_list_sub)
+            mean_dice = dice(val_outputs==1, val_labels==1)
             print("Mean Dice: {}".format(mean_dice))
             dice_list_case.append(mean_dice)
             nib.save(
