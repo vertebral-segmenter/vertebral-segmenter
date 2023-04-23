@@ -91,6 +91,7 @@ def main():
         dice_list_case = []
         iou_list_case = []
         bv_R2 = R2Metric()
+        tv_R2 = R2Metric()
         bvtv_R2 = R2Metric()
 
         for i, batch in enumerate(val_loader):
@@ -120,10 +121,12 @@ def main():
 
             # R2 metric
             bv_R2.update((val_labels == 1).sum(), (val_outputs == 1).sum())
+            tv_R2.update((val_labels == 0).sum(), (val_outputs == 0).sum())
             bvtv_R2.update((val_labels == 1).sum() / val_labels.size,
                            (val_outputs == 1).sum() / val_outputs.size)
 
             print("BV R2-value (running): {}".format(bv_R2.get_result()))
+            print("TV R2-value (running): {}".format(tv_R2.get_result()))
             print("BV/TV R2-value (running): {}".format(bvtv_R2.get_result()))
 
             if args.to_save:
@@ -134,6 +137,7 @@ def main():
         print("Overall Mean Dice: {}".format(np.mean(dice_list_case)))
         print("Overall Mean IoU: {}".format(np.mean(iou_list_case)))
         print("Overall BV R2-value: {}".format(bv_R2.get_result()))
+        print("Overall TV R2-value: {}".format(tv_R2.get_result()))
         print("Overall BV/TV R2-value: {}".format(bvtv_R2.get_result()))
 
 # Run inference on test images
