@@ -5,7 +5,7 @@ import nibabel as nib
 import numpy as np
 import torch
 from finetune.utils.data_utils import get_loader
-from finetune.utils.utils import dice, resample_3d, R2Metric
+from finetune.utils.utils import dice, resample_3d, R2Metric, iou
 
 from monai.inferers import sliding_window_inference
 from monai.networks.nets import SwinUNETR
@@ -88,6 +88,7 @@ def main():
 
     with torch.no_grad():
         dice_list_case = []
+        iou_list_case = []
         bv_R2 = R2Metric()
         bvtv_R2 = R2Metric()
 
@@ -105,16 +106,21 @@ def main():
             val_outputs = np.argmax(val_outputs, axis=1).astype(np.uint8)[0]
             val_labels = val_labels.cpu().numpy()[0, 0, :, :, :]
             val_outputs = resample_3d(val_outputs, target_shape)
+
             # Dice metric
             mean_dice = dice(val_outputs==1, val_labels==1)
             print("Mean Dice: {}".format(mean_dice))
             dice_list_case.append(mean_dice)
-            # R2 metric
-            for j in range(1, 2):
 
-                bv_R2.update((val_labels == j).sum(), (val_outputs == j).sum())
-                bvtv_R2.update((val_labels == j).sum() / val_labels.size,
-                               (val_outputs == j).sum() / val_outputs.size)
+            # IoU metric
+            mean_iou = iou(val_outputs==1, val_labels==1)
+            print("Mean IoU: {}".format(mean_iou))
+            iou_list_case.append(mean_iou)
+
+            # R2 metric
+            bv_R2.update((val_labels == 1).sum(), (val_outputs == 1).sum())
+            bvtv_R2.update((val_labels == 1).sum() / val_labels.size,
+                           (val_outputs == 1).sum() / val_outputs.size)
 
             print("BV R2-value (running): {}".format(bv_R2.get_result()))
             print("BV/TV R2-value (running): {}".format(bvtv_R2.get_result()))
@@ -125,6 +131,7 @@ def main():
                 )
 
         print("Overall Mean Dice: {}".format(np.mean(dice_list_case)))
+        print("Overall Mean IoU: {}".format(np.mean(iou_list_case)))
         print("Overall BV R2-value: {}".format(bv_R2.get_result()))
         print("Overall BV/TV R2-value: {}".format(bvtv_R2.get_result()))
 

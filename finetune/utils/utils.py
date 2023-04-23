@@ -20,6 +20,15 @@ def dice(x, y):
     return 2 * intersect / (x_sum + y_sum)
 
 
+def iou(x, y):
+    intersect = np.sum(np.sum(np.sum(x * y)))
+    y_sum = np.sum(np.sum(np.sum(y)))
+    if y_sum == 0:
+        return 0.0
+    x_sum = np.sum(np.sum(np.sum(x)))
+    return intersect / (x_sum + y_sum - intersect)
+
+
 class AverageMeter(object):
     def __init__(self):
         self.reset()
