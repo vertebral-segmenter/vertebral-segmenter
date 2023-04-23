@@ -36,6 +36,9 @@ def get_loader(args):
             LoadImaged(keys=["image"]),
             AddChanneld(keys=["image"]),
             Orientationd(keys=["image"], axcodes="RAS"),
+            Spacingd(
+                keys=["image"], pixdim=(args.space_x, args.space_y, args.space_z), mode="bilinear"
+            ),
             ScaleIntensityRanged(
                 keys=["image"], a_min=args.a_min, a_max=args.a_max, b_min=args.b_min, b_max=args.b_max, clip=True
             ),
@@ -56,6 +59,9 @@ def get_loader(args):
             LoadImaged(keys=["image"]),
             AddChanneld(keys=["image"]),
             Orientationd(keys=["image"], axcodes="RAS"),
+            Spacingd(
+                keys=["image"], pixdim=(args.space_x, args.space_y, args.space_z), mode="bilinear"
+            ),
             ScaleIntensityRanged(
                 keys=["image"], a_min=args.a_min, a_max=args.a_max, b_min=args.b_min, b_max=args.b_max, clip=True
             ),

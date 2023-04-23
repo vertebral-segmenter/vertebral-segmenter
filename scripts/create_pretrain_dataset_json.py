@@ -3,7 +3,7 @@
 import os
 import numpy as np
 
-data_dir = "pretrain/data_scaled" # Modify this
+data_dir = "pretrain/data" # Modify this
 
 files = os.listdir(data_dir)
 training = []

@@ -61,10 +61,10 @@ parser.add_argument("--norm_name", default="instance", type=str, help="normaliza
 parser.add_argument("--workers", default=8, type=int, help="number of workers")
 parser.add_argument("--feature_size", default=48, type=int, help="feature size")
 parser.add_argument("--in_channels", default=1, type=int, help="number of input channels")
-parser.add_argument("--out_channels", default=14, type=int, help="number of output channels")
+parser.add_argument("--out_channels", default=2, type=int, help="number of output channels")
 parser.add_argument("--use_normal_dataset", action="store_true", help="use monai Dataset class")
 parser.add_argument("--a_min", default=-1000, type=float, help="a_min in ScaleIntensityRanged")
-parser.add_argument("--a_max", default=1000, type=float, help="a_max in ScaleIntensityRanged")
+parser.add_argument("--a_max", default=8000, type=float, help="a_max in ScaleIntensityRanged")
 parser.add_argument("--b_min", default=0.0, type=float, help="b_min in ScaleIntensityRanged")
 parser.add_argument("--b_max", default=1.0, type=float, help="b_max in ScaleIntensityRanged")
 parser.add_argument("--space_x", default=0.035, type=float, help="spacing in x direction")
@@ -161,7 +161,7 @@ def main_worker(gpu, args):
         target_saver = NiftiSaver('./finetune/model_inputs/label')
         for step, batch_data in enumerate(loader[0]):
             data, target = batch_data["image"], batch_data["label"]
-            if 3 <= step <= 10:
+            if step < 8:
                 img_saver.save_batch(data)
                 target_saver.save_batch(target)
         exit(0)

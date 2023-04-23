@@ -86,6 +86,10 @@ def get_loader(args):
             transforms.RandRotate90d(keys=["image", "label"], prob=args.RandRotate90d_prob, max_k=3),
             transforms.RandScaleIntensityd(keys="image", factors=0.1, prob=args.RandScaleIntensityd_prob),
             transforms.RandShiftIntensityd(keys="image", offsets=0.1, prob=args.RandShiftIntensityd_prob),
+            # Remove
+            # transforms.ScaleIntensityRanged(
+            #     keys=["image"], a_min=args.b_min, a_max=args.b_max, b_min=args.a_min, b_max=args.a_max, clip=True
+            # ),
             transforms.ToTensord(keys=["image", "label"]),
         ]
     )
