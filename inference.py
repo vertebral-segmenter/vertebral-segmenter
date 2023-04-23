@@ -5,7 +5,7 @@ import nibabel as nib
 import numpy as np
 import torch
 from finetune.utils.data_utils import get_loader
-from finetune.utils.utils import dice, resample_3d
+from finetune.utils.utils import dice, resample_3d, R2Metric
 
 from monai.inferers import sliding_window_inference
 from monai.networks.nets import SwinUNETR
@@ -44,6 +44,9 @@ parser.add_argument("--RandShiftIntensityd_prob", default=0.1, type=float, help=
 parser.add_argument("--spatial_dims", default=3, type=int, help="spatial dimension of input data")
 parser.add_argument("--use_checkpoint", action="store_true", help="use gradient checkpointing to save memory")
 parser.add_argument("--use_dilated_swin", action="store_true", help="use dilated swin unetr architecture instead")
+
+# AR: modification for quicker inference
+parser.add_argument("--to_save", default=True, type=bool, help="save seg results")
 
 
 def main():
@@ -85,6 +88,9 @@ def main():
 
     with torch.no_grad():
         dice_list_case = []
+        bv_R2 = R2Metric()
+        bvtv_R2 = R2Metric()
+
         for i, batch in enumerate(val_loader):
             val_inputs, val_labels = (batch["image"].cuda(), batch["label"].cuda())
             original_affine = batch["label_meta_dict"]["affine"][0].numpy()
@@ -99,14 +105,28 @@ def main():
             val_outputs = np.argmax(val_outputs, axis=1).astype(np.uint8)[0]
             val_labels = val_labels.cpu().numpy()[0, 0, :, :, :]
             val_outputs = resample_3d(val_outputs, target_shape)
+            # Dice metric
             mean_dice = dice(val_outputs==1, val_labels==1)
             print("Mean Dice: {}".format(mean_dice))
             dice_list_case.append(mean_dice)
-            nib.save(
-                nib.Nifti1Image(val_outputs.astype(np.uint8), original_affine), os.path.join(output_directory, img_name)
-            )
+            # R2 metric
+            for j in range(1, 2):
+
+                bv_R2.update((val_labels == j).sum(), (val_outputs == j).sum())
+                bvtv_R2.update((val_labels == j).sum() / val_labels.size,
+                               (val_outputs == j).sum() / val_outputs.size)
+
+            print("BV R2-value (running): {}".format(bv_R2.get_result()))
+            print("BV/TV R2-value (running): {}".format(bvtv_R2.get_result()))
+
+            if args.to_save:
+                nib.save(
+                    nib.Nifti1Image(val_outputs.astype(np.uint8), original_affine), os.path.join(output_directory, img_name)
+                )
 
         print("Overall Mean Dice: {}".format(np.mean(dice_list_case)))
+        print("Overall BV R2-value: {}".format(bv_R2.get_result()))
+        print("Overall BV/TV R2-value: {}".format(bvtv_R2.get_result()))
 
 
 if __name__ == "__main__":
