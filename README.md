@@ -1,3 +1,28 @@
+# Automated 3D Rat Vertebral Body Segmentation in μCT Images with Dilated Swin-UNETR and AUFRC Loss
+
+## Abstract
+We enhance murine vertebral segmentation using Swin-UNETR coupled with Assymmetric Unified Focal loss with density constraint (AUFRC) and dilated attention mechanisms. Our model boosts the semantic segmentation performance of trabecular bone within vertebrae in murine spines, benefiting cancer research. Code for the project is [open-sourced](https://bitbucket.org/OrthopaedicBiomechanicsLab/vertebral-segmentation-rat-l2/src/master/).
+
+## Introduction
+We aim to apply Swin-UNETR, known for its effectiveness in 3D segmentation tasks, to vertebral segmentation in murine spines, creating a high-performance, fully-automated segmentation model.
+
+## Related Work
+Swin Transformer and D-Former are beneficial in image segmentation tasks, especially when handling class-imbalanced medical image segmentation.
+
+## Methods
+
+### Data Preprocessing and Augmentation
+We focused on L2 vertebral region segmentation from µCT scans of rat spinal vertebral bones. The scans underwent a four-phase preprocessing: data extraction and format conversion, resampling and standardization, image resizing, and dataset validation. Image augmentation techniques were also applied.
+
+### Model Architecture
+Our model modifies Swin-UNETR by including a dilated attention mechanism and training with asymmetric unified focal loss. An overview of the Dilated Swin-UNETR architecture can be found [here](insert link here).
+
+
+## Getting Started
+
+### Requirements
+Dependencies include Python 3.8+, PyTorch 1.9+, torchvision 0.10+, NumPy 1.21+, SciPy 1.7+, SimpleITK 2.0+, Matplotlib 3.4+, Pandas 1.3+, and nibabel 3.2+.
+
 
 ## Env Setup
 
