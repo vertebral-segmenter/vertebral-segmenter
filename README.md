@@ -30,20 +30,16 @@ Get previous pretrained weights `model_swinvit.pt` from [here](https://github.co
 
 ### Compute Canada
 
-1. Add bender's ssh public key to CC
-2. SSH into bender
-3. Run the following command to copy source data for pretrain
+1. Run the following command to copy source data for pretrain
 
 ```sh
-# Where data reside on bender
-LOCAL_DIR=/home/smsmt/datasets/Rat_mCT_v1/pre-processing/
 # Where data reside on compute canada (CC), make sure this folder exist on CC
 CC_DIR=/scratch/<cc-id>/vertebral-segmentation-rat-l2/pretrain/data/
 
 scp -i ~/.ssh/bitbucket ${LOCAL_DIR}/*.nii <cc-id>@graham.computecanada.ca:${CC_DIR}
 ```
 
-4. Run the following command to copy source data for finetune
+2. Run the following command to copy source data for finetune
 
 ```sh
 # Where data reside on compute canada (CC), make sure this folder exist on CC
@@ -52,13 +48,13 @@ CC_DIR=/scratch/c/cwhyne/<cc-id>/vertebral-segmentation-rat-l2/finetune/data/
 scp -i ~/.ssh/bitbucket -r ${LOCAL_DIR}/. <cc-id>@niagara.scinet.utoronto.ca:${CC_DIR}
 ```
 
-4. Run the following command to copy source data for finetune
+3. Run the following command to copy source data for finetune
 
 ```sh
 # Where data reside on compute canada (CC), make sure this folder exist on CC
 CC_DIR=/scratch/c/cwhyne/<cc-id>/vertebral-segmentation-rat-l2/finetune/data/
 
-scp -i ~/.ssh/bitbucket -r ${LOCAL_DIR}/* yuanshe5@niagara.scinet.utoronto.ca:${CC_DIR}
+scp -i ~/.ssh/bitbucket -r ${LOCAL_DIR}/* <cc-id>@niagara.scinet.utoronto.ca:${CC_DIR}
 ```
 
 Then in CC, run the following to scale intensity between -1000 to 1000 and prepare dataset json
@@ -67,20 +63,6 @@ Then in CC, run the following to scale intensity between -1000 to 1000 and prepa
 python data_preprocessing/intensity_scaling.py
 python scripts/create_pretrain_dataset_json.py
 ```
-
-### Bender
-
-```sh
-# Copy rat data into prtraining data folder
-cp -r <data-location> ./pretrain/data/
-# Ensure all images have same intensity range
-python data_preprocessing/intensity_scaling.py
-# Prepare rat data json
-python scripts/create_pretrain_dataset_json.py
-```
-
-Modify `pretrain/utils/data_utils.py` to load the json and data from the right path.
-
 
 ## Pretrain
 
@@ -97,16 +79,6 @@ sbatch run_pretrain.sh
 ```
 
 To check the state of your job, run `squeue | grep ${JOB_ID}`: `PD=pending`, `R=running`
-
-### Bender
-
-#### Training on top of previous pretrained weight
-```
-python pretrain.py --use_checkpoint --batch_size=1 --num_steps=100000 --lrdecay --eval_num=500 --logdir=0 --lr=6e-7 --use_ssl_pretrained
-
-# Distributed version
-python -m torch.distributed.launch --nproc_per_node=2 --master_port=11223 pretrain.py --batch_size=1 --num_steps=100000 --lrdecay --eval_num=500 --lr=6e-7 --decay=0.1 --use_ssl_pretrained
-```
 
 #### Resume training
 
