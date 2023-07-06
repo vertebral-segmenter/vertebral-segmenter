@@ -38,29 +38,25 @@ Get previous pretrained weights `model_swinvit.pt` from [here](https://github.co
 # Where data reside on bender
 LOCAL_DIR=/home/smsmt/datasets/Rat_mCT_v1/pre-processing/
 # Where data reside on compute canada (CC), make sure this folder exist on CC
-CC_DIR=/scratch/yuanshe5/vertebral-segmentation-rat-l2/pretrain/data/
+CC_DIR=/scratch/<cc-id>/vertebral-segmentation-rat-l2/pretrain/data/
 
-scp -i ~/.ssh/bitbucket ${LOCAL_DIR}/*.nii yuanshe5@graham.computecanada.ca:${CC_DIR}
+scp -i ~/.ssh/bitbucket ${LOCAL_DIR}/*.nii <cc-id>@graham.computecanada.ca:${CC_DIR}
 ```
 
 4. Run the following command to copy source data for finetune
 
 ```sh
-# Where data reside on bender
-LOCAL_DIR=/home/smsmt/datasets/Rat_mCT_train_v0
 # Where data reside on compute canada (CC), make sure this folder exist on CC
-CC_DIR=/scratch/c/cwhyne/yuanshe5/vertebral-segmentation-rat-l2/finetune/data/
+CC_DIR=/scratch/c/cwhyne/<cc-id>/vertebral-segmentation-rat-l2/finetune/data/
 
-scp -i ~/.ssh/bitbucket -r ${LOCAL_DIR}/. yuanshe5@niagara.scinet.utoronto.ca:${CC_DIR}
+scp -i ~/.ssh/bitbucket -r ${LOCAL_DIR}/. <cc-id>@niagara.scinet.utoronto.ca:${CC_DIR}
 ```
 
 4. Run the following command to copy source data for finetune
 
 ```sh
-# Where data reside on bender
-LOCAL_DIR=/home/smsmt/datasets/Rat_mCT_v1
 # Where data reside on compute canada (CC), make sure this folder exist on CC
-CC_DIR=/scratch/c/cwhyne/yuanshe5/vertebral-segmentation-rat-l2/finetune/data/
+CC_DIR=/scratch/c/cwhyne/<cc-id>/vertebral-segmentation-rat-l2/finetune/data/
 
 scp -i ~/.ssh/bitbucket -r ${LOCAL_DIR}/* yuanshe5@niagara.scinet.utoronto.ca:${CC_DIR}
 ```
@@ -76,7 +72,7 @@ python scripts/create_pretrain_dataset_json.py
 
 ```sh
 # Copy rat data into prtraining data folder
-cp -r /home/smsmt/Rat_mCT_new/. ./pretrain/data/
+cp -r <data-location> ./pretrain/data/
 # Ensure all images have same intensity range
 python data_preprocessing/intensity_scaling.py
 # Prepare rat data json
