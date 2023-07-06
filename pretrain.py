@@ -14,14 +14,14 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.utils.tensorboard import SummaryWriter
 from pretrain.utils.data_utils import get_loader
 from pretrain.utils.ops import aug_rand, rot_rand
-
+from monai.data.nifti_saver import NiftiSaver
 
 def main():
     def save_ckp(state, checkpoint_dir):
         torch.save(state, checkpoint_dir)
 
     def train(args, global_step, train_loader, val_best, scaler):
-
+        print("Start training")
         model.train()
         loss_train = []
         loss_train_recon = []
@@ -152,12 +152,12 @@ def main():
     parser.add_argument("--use_checkpoint", action="store_true", help="use gradient checkpointing to save memory")
     parser.add_argument("--spatial_dims", default=3, type=int, help="spatial dimension of input data")
     parser.add_argument("--a_min", default=-1000, type=float, help="a_min in ScaleIntensityRanged")
-    parser.add_argument("--a_max", default=1000, type=float, help="a_max in ScaleIntensityRanged")
+    parser.add_argument("--a_max", default=8000, type=float, help="a_max in ScaleIntensityRanged")
     parser.add_argument("--b_min", default=0.0, type=float, help="b_min in ScaleIntensityRanged")
     parser.add_argument("--b_max", default=1.0, type=float, help="b_max in ScaleIntensityRanged")
-    parser.add_argument("--space_x", default=1.5, type=float, help="spacing in x direction")
-    parser.add_argument("--space_y", default=1.5, type=float, help="spacing in y direction")
-    parser.add_argument("--space_z", default=2.0, type=float, help="spacing in z direction")
+    parser.add_argument("--space_x", default=0.035, type=float, help="spacing in x direction")
+    parser.add_argument("--space_y", default=0.035, type=float, help="spacing in y direction")
+    parser.add_argument("--space_z", default=0.035, type=float, help="spacing in z direction")
     parser.add_argument("--roi_x", default=96, type=int, help="roi size in x direction")
     parser.add_argument("--roi_y", default=96, type=int, help="roi size in y direction")
     parser.add_argument("--roi_z", default=96, type=int, help="roi size in z direction")
@@ -178,7 +178,8 @@ def main():
     parser.add_argument("--dist-url", default="env://", help="url used to set up distributed training")
     parser.add_argument("--smartcache_dataset", action="store_true", help="use monai smartcache Dataset")
     parser.add_argument("--cache_dataset", action="store_true", help="use monai cache Dataset")
-    parser.add_argument("--use_ssl_pretrained", action="store_true", help="use self-supervised pretrained weights")
+    parser.add_argument("--use_ssl_pretrained", default=None, type=str, help="use self-supervised pretrained weights")
+    parser.add_argument("--use_dilated_swin", action="store_true", help="use dilated swin unetr architecture instead")
 
     args = parser.parse_args()
     logdir = "pretrain/runs/" + args.logdir
@@ -191,7 +192,6 @@ def main():
     args.device = "cuda:0"
     args.world_size = 1
     args.rank = 0
-
     if args.distributed:
         args.device = "cuda:%d" % args.local_rank
         torch.cuda.set_device(args.local_rank)
@@ -225,7 +225,7 @@ def main():
         optimizer = optim.SGD(params=model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.decay)
 
     if args.use_ssl_pretrained:
-        model_dict = torch.load("./pretrain/pretrained_models/model_swinvit.pt")
+        model_dict = torch.load(args.use_ssl_pretrained)
         state_dict = model_dict["state_dict"]
         # fix potential differences in state dict keys from pre-training to
         # fine-tuning
@@ -237,13 +237,6 @@ def main():
             print("Tag 'swin_vit' found in state dict - fixing!")
             for key in list(state_dict.keys()):
                 state_dict[key.replace("swin_vit", "swinViT")] = state_dict.pop(key)
-        for key in list(state_dict.keys()):
-            if "contrastive_head" in key or "rotation_head" in key:
-                # the heads are not part of swinViT, should not prefix it with swinViT
-                state_dict[key.lstrip("swinViT.")] = state_dict.pop(key)
-            if "swinViT.convTrans3d" in key:
-                # The convTrans3d is renamed to conv afterwards
-                state_dict[key.replace("swinViT.convTrans3d", "conv")] = state_dict.pop(key)
         # We now load model weights, setting param `strict` to False, i.e.:
         # this load the encoder weights (Swin-ViT, SSL pre-trained), but leaves
         # the decoder weights untouched (CNN UNet decoder).
@@ -274,7 +267,14 @@ def main():
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
         model = DistributedDataParallel(model, device_ids=[args.local_rank])
     train_loader, test_loader = get_loader(args)
-
+    # Save model inputs for inspection
+    save_model_inputs = False
+    if save_model_inputs:
+        nifty_saver = NiftiSaver('./pretrain/model_inputs')
+        for step, batch in enumerate(train_loader):
+            if 3 <= step <= 10:
+                nifty_saver.save_batch(batch["image"])
+        exit(0)
     global_step = 0
     best_val = 1e8
     if args.amp:
@@ -290,7 +290,7 @@ def main():
             torch.save(model.state_dict(), logdir + "final_model.pth")
         dist.destroy_process_group()
     else:
-        torch.save(model.state_dict(), logdir + "final_model.pth")
+        torch.save(model.state_dict(), logdir + "/final_model.pth")
     save_ckp(checkpoint, logdir + "/model_final_epoch.pt")
 
 

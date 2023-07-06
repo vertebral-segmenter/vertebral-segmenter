@@ -53,8 +53,8 @@ class MLPBlock(nn.Module):
         if not (0 <= dropout_rate <= 1):
             raise ValueError("dropout_rate should be between 0 and 1.")
         mlp_dim = mlp_dim or hidden_size
-        self.fc1 = nn.Linear(hidden_size, mlp_dim)
-        self.fc2 = nn.Linear(mlp_dim, hidden_size)
+        self.linear1 = nn.Linear(hidden_size, mlp_dim)
+        self.linear2 = nn.Linear(mlp_dim, hidden_size)
         self.fn = get_act_layer(act)
         self.drop1 = nn.Dropout(dropout_rate)
         dropout_opt = look_up_option(dropout_mode, SUPPORTED_DROPOUT_MODE)
@@ -66,8 +66,8 @@ class MLPBlock(nn.Module):
             raise ValueError(f"dropout_mode should be one of {SUPPORTED_DROPOUT_MODE}")
 
     def forward(self, x):
-        x = self.fn(self.fc1(x))
+        x = self.fn(self.linear1(x))
         x = self.drop1(x)
-        x = self.fc2(x)
+        x = self.linear2(x)
         x = self.drop2(x)
         return x

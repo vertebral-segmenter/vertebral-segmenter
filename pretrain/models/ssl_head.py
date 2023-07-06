@@ -2,30 +2,49 @@ import torch
 import torch.nn as nn
 
 from monai.networks.nets.swin_unetr import SwinTransformer as SwinViT
+from monai.networks.nets.swin_unetr_dilated import DilSwinTransformer as DSwinViT
 from monai.utils import ensure_tuple_rep
 
 
 class SSLHead(nn.Module):
-    def __init__(self, args, upsample="large_kernel_deconv", dim=768):
+    def __init__(self, args, upsample="vae", dim=768):
         super(SSLHead, self).__init__()
         patch_size = ensure_tuple_rep(2, args.spatial_dims)
         window_size = ensure_tuple_rep(7, args.spatial_dims)
-        self.swinViT = SwinViT(
-            in_chans=args.in_channels,
-            embed_dim=args.feature_size,
-            window_size=window_size,
-            patch_size=patch_size,
-            depths=[2, 2, 2, 2],
-            num_heads=[3, 6, 12, 24],
-            mlp_ratio=4.0,
-            qkv_bias=True,
-            drop_rate=0.0,
-            attn_drop_rate=0.0,
-            drop_path_rate=args.dropout_path_rate,
-            norm_layer=torch.nn.LayerNorm,
-            use_checkpoint=args.use_checkpoint,
-            spatial_dims=args.spatial_dims,
-        )
+        if args.use_dilated_swin:
+            self.swinViT = DSwinViT(
+                in_chans=args.in_channels,
+                embed_dim=args.feature_size,
+                window_size=window_size,
+                patch_size=patch_size,
+                depths=[2, 2, 2, 2],
+                num_heads=[3, 6, 12, 24],
+                mlp_ratio=4.0,
+                qkv_bias=True,
+                drop_rate=0.0,
+                attn_drop_rate=0.0,
+                drop_path_rate=args.dropout_path_rate,
+                norm_layer=torch.nn.LayerNorm,
+                use_checkpoint=args.use_checkpoint,
+                spatial_dims=args.spatial_dims,
+            )
+        else:
+            self.swinViT = SwinViT(
+                in_chans=args.in_channels,
+                embed_dim=args.feature_size,
+                window_size=window_size,
+                patch_size=patch_size,
+                depths=[2, 2, 2, 2],
+                num_heads=[3, 6, 12, 24],
+                mlp_ratio=4.0,
+                qkv_bias=True,
+                drop_rate=0.0,
+                attn_drop_rate=0.0,
+                drop_path_rate=args.dropout_path_rate,
+                norm_layer=torch.nn.LayerNorm,
+                use_checkpoint=args.use_checkpoint,
+                spatial_dims=args.spatial_dims,
+            )
         self.rotation_pre = nn.Identity()
         self.rotation_head = nn.Linear(dim, 4)
         self.contrastive_pre = nn.Identity()

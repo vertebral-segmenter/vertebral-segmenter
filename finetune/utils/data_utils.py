@@ -86,6 +86,10 @@ def get_loader(args):
             transforms.RandRotate90d(keys=["image", "label"], prob=args.RandRotate90d_prob, max_k=3),
             transforms.RandScaleIntensityd(keys="image", factors=0.1, prob=args.RandScaleIntensityd_prob),
             transforms.RandShiftIntensityd(keys="image", offsets=0.1, prob=args.RandShiftIntensityd_prob),
+            # Remove
+            # transforms.ScaleIntensityRanged(
+            #     keys=["image"], a_min=args.b_min, a_max=args.b_max, b_min=args.a_min, b_max=args.a_max, clip=True
+            # ),
             transforms.ToTensord(keys=["image", "label"]),
         ]
     )
@@ -117,8 +121,34 @@ def get_loader(args):
             transforms.ToTensord(keys=["image", "label"]),
         ]
     )
+    inf_transform = transforms.Compose(
+        [
+            transforms.LoadImaged(keys=["image"]),
+            transforms.AddChanneld(keys=["image"]),
+            # transforms.Orientationd(keys=["image"], axcodes="RAS"),
+            transforms.Spacingd(keys="image", pixdim=(args.space_x, args.space_y, args.space_z), mode="bilinear"),
+            transforms.ScaleIntensityRanged(
+                keys=["image"], a_min=args.a_min, a_max=args.a_max, b_min=args.b_min, b_max=args.b_max, clip=True
+            ),
+            transforms.ToTensord(keys=["image"]),
+        ]
+    )
 
     if args.test_mode:
+        test_files = load_decathlon_datalist(datalist_json, True, "test", base_dir=data_dir)
+        test_ds = data.Dataset(data=test_files, transform=inf_transform)
+        test_sampler = Sampler(test_ds, shuffle=False) if args.distributed else None
+        test_loader = data.DataLoader(
+            test_ds,
+            batch_size=1,
+            shuffle=False,
+            num_workers=args.workers,
+            sampler=test_sampler,
+            pin_memory=True,
+            persistent_workers=True,
+        )
+        loader = test_loader
+    elif args.val_mode:
         test_files = load_decathlon_datalist(datalist_json, True, "validation", base_dir=data_dir)
         test_ds = data.Dataset(data=test_files, transform=test_transform)
         test_sampler = Sampler(test_ds, shuffle=False) if args.distributed else None

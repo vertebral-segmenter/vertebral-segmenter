@@ -14,10 +14,19 @@ from finetune.utils.data_utils import get_loader
 
 from monai.inferers import sliding_window_inference
 from monai.losses import DiceCELoss
+from monai.losses import CustomLoss
 from monai.metrics import DiceMetric
+from monai.metrics import R2BoneMetric
+from monai.metrics import VarianceMetric
 from monai.networks.nets import SwinUNETR
+from monai.networks.nets.swin_unetr_dilated import DilSwinUNETR
 from monai.transforms import Activations, AsDiscrete, Compose
 from monai.utils.enums import MetricReduction
+from monai.data.nifti_saver import NiftiSaver
+from monai.networks import one_hot
+
+# To prevent CUDA memory fragmentation
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = "max_split_size_mb:512"
 
 parser = argparse.ArgumentParser(description="Swin UNETR segmentation pipeline")
 parser.add_argument("--checkpoint", default=None, help="start training from saved checkpoint")
@@ -52,15 +61,15 @@ parser.add_argument("--norm_name", default="instance", type=str, help="normaliza
 parser.add_argument("--workers", default=8, type=int, help="number of workers")
 parser.add_argument("--feature_size", default=48, type=int, help="feature size")
 parser.add_argument("--in_channels", default=1, type=int, help="number of input channels")
-parser.add_argument("--out_channels", default=14, type=int, help="number of output channels")
+parser.add_argument("--out_channels", default=2, type=int, help="number of output channels")
 parser.add_argument("--use_normal_dataset", action="store_true", help="use monai Dataset class")
-parser.add_argument("--a_min", default=-175.0, type=float, help="a_min in ScaleIntensityRanged")
-parser.add_argument("--a_max", default=250.0, type=float, help="a_max in ScaleIntensityRanged")
+parser.add_argument("--a_min", default=-1000, type=float, help="a_min in ScaleIntensityRanged")
+parser.add_argument("--a_max", default=8000, type=float, help="a_max in ScaleIntensityRanged")
 parser.add_argument("--b_min", default=0.0, type=float, help="b_min in ScaleIntensityRanged")
 parser.add_argument("--b_max", default=1.0, type=float, help="b_max in ScaleIntensityRanged")
-parser.add_argument("--space_x", default=1.5, type=float, help="spacing in x direction")
-parser.add_argument("--space_y", default=1.5, type=float, help="spacing in y direction")
-parser.add_argument("--space_z", default=2.0, type=float, help="spacing in z direction")
+parser.add_argument("--space_x", default=0.035, type=float, help="spacing in x direction")
+parser.add_argument("--space_y", default=0.035, type=float, help="spacing in y direction")
+parser.add_argument("--space_z", default=0.035, type=float, help="spacing in z direction")
 parser.add_argument("--roi_x", default=96, type=int, help="roi size in x direction")
 parser.add_argument("--roi_y", default=96, type=int, help="roi size in y direction")
 parser.add_argument("--roi_z", default=96, type=int, help="roi size in z direction")
@@ -77,9 +86,12 @@ parser.add_argument("--resume_ckpt", action="store_true", help="resume training 
 parser.add_argument("--smooth_dr", default=1e-6, type=float, help="constant added to dice denominator to avoid nan")
 parser.add_argument("--smooth_nr", default=0.0, type=float, help="constant added to dice numerator to avoid zero")
 parser.add_argument("--use_checkpoint", action="store_true", help="use gradient checkpointing to save memory")
-parser.add_argument("--use_ssl_pretrained", action="store_true", help="use self-supervised pretrained weights")
+parser.add_argument("--use_ssl_pretrained", default=None, type=str, help="use self-supervised pretrained weights")
 parser.add_argument("--spatial_dims", default=3, type=int, help="spatial dimension of input data")
 parser.add_argument("--squared_dice", action="store_true", help="use squared Dice")
+parser.add_argument("--regular_dice", action="store_true", help="use regular Dice")
+parser.add_argument("--use_dilated_swin", action="store_true", help="use dilated swin unetr architecture instead")
+parser.add_argument("--resume", default=None, type=str, help="resume training")
 
 
 def main():
@@ -109,32 +121,89 @@ def main_worker(gpu, args):
     torch.cuda.set_device(args.gpu)
     torch.backends.cudnn.benchmark = True
     args.test_mode = False
+    args.val_mode = False
     loader = get_loader(args)
+    test_custom_loss = False
+    if test_custom_loss:
+        # dice_loss = DiceCELoss(to_onehot_y=True, softmax=True)
+        dice_loss = CustomLoss(to_onehot_y=True)
+        target_saver = NiftiSaver('./finetune/model_inputs/invalid_label')
+        for step, batch_data in enumerate(loader[0]):
+            data, target = batch_data["image"], batch_data["label"]
+            if 3 <= step <= 10: 
+                loss = dice_loss(one_hot(target, num_classes=2), target)
+                print(loss)
+                if loss.sum() > 0.04:
+                    target_saver.save_batch(target)
+        exit(0)
+    test_custom_loss_img = False
+    if test_custom_loss_img:
+        num_batch_with_0 = 0
+        total_num_batch = 0
+        num_data_with_0 = 0
+        total_num_data = 0
+        for step, batch_data in enumerate(loader[0]):
+            data, target = batch_data["image"], batch_data["label"]
+            batch_contain_0 = False
+            for b in range(len(target)):
+                density = target[b].mean()
+                total_num_data += 1
+                if density < 1e-7: 
+                    batch_contain_0 = True
+                    num_data_with_0 += 1
+            num_batch_with_0 += batch_contain_0
+            total_num_batch += 1
+        print(num_batch_with_0/total_num_batch)
+        print(num_data_with_0/total_num_data)
+        exit(0)
+    save_model_inputs = False
+    if save_model_inputs:
+        img_saver = NiftiSaver('./finetune/model_inputs/img')
+        target_saver = NiftiSaver('./finetune/model_inputs/label')
+        for step, batch_data in enumerate(loader[0]):
+            data, target = batch_data["image"], batch_data["label"]
+            if step < 8:
+                img_saver.save_batch(data)
+                target_saver.save_batch(target)
+        exit(0)
     print(args.rank, " gpu", args.gpu)
     if args.rank == 0:
         print("Batch size is:", args.batch_size, "epochs", args.max_epochs)
     inf_size = [args.roi_x, args.roi_y, args.roi_z]
-
     pretrained_dir = args.pretrained_dir
-    model = SwinUNETR(
-        img_size=(args.roi_x, args.roi_y, args.roi_z),
-        in_channels=args.in_channels,
-        out_channels=args.out_channels,
-        feature_size=args.feature_size,
-        drop_rate=0.0,
-        attn_drop_rate=0.0,
-        dropout_path_rate=args.dropout_path_rate,
-        use_checkpoint=args.use_checkpoint,
-    )
+    model=None
+    if args.use_dilated_swin:
+        model = DilSwinUNETR(
+            img_size=(args.roi_x, args.roi_y, args.roi_z),
+            in_channels=args.in_channels,
+            out_channels=args.out_channels,
+            feature_size=args.feature_size,
+            drop_rate=0.0,
+            attn_drop_rate=0.0,
+            dropout_path_rate=args.dropout_path_rate,
+            use_checkpoint=args.use_checkpoint,
+        )
+    else:
+        model = SwinUNETR(
+            img_size=(args.roi_x, args.roi_y, args.roi_z),
+            in_channels=args.in_channels,
+            out_channels=args.out_channels,
+            feature_size=args.feature_size,
+            drop_rate=0.0,
+            attn_drop_rate=0.0,
+            dropout_path_rate=args.dropout_path_rate,
+            use_checkpoint=args.use_checkpoint,
+        )
 
-    if args.resume_ckpt:
-        model_dict = torch.load(os.path.join(pretrained_dir, args.pretrained_model_name))["state_dict"]
-        model.load_state_dict(model_dict)
-        print("Use pretrained weights")
+    if args.resume:
+        model_pth = args.resume
+        model_dict = torch.load(model_pth)
+        model.load_state_dict(model_dict["state_dict"])
+        print(f"Resume training weights: {model_pth}")
 
     if args.use_ssl_pretrained:
         try:
-            model_dict = torch.load("./pretrain/pretrained_models/model_swinvit.pt")
+            model_dict = torch.load(args.use_ssl_pretrained)
             state_dict = model_dict["state_dict"]
             # fix potential differences in state dict keys from pre-training to
             # fine-tuning
@@ -158,11 +227,15 @@ def main_worker(gpu, args):
         dice_loss = DiceCELoss(
             to_onehot_y=True, softmax=True, squared_pred=True, smooth_nr=args.smooth_nr, smooth_dr=args.smooth_dr
         )
-    else:
+    elif args.regular_dice:
         dice_loss = DiceCELoss(to_onehot_y=True, softmax=True)
+    else:
+        dice_loss = CustomLoss(to_onehot_y=True)
     post_label = AsDiscrete(to_onehot=True, n_classes=args.out_channels)
     post_pred = AsDiscrete(argmax=True, to_onehot=True, n_classes=args.out_channels)
-    dice_acc = DiceMetric(include_background=True, reduction=MetricReduction.MEAN, get_not_nans=True)
+    dice_acc = DiceMetric(include_background=False, reduction=MetricReduction.MEAN, get_not_nans=True)
+    r2_acc = R2BoneMetric()
+    var_acc = VarianceMetric()
     model_inferer = partial(
         sliding_window_inference,
         roi_size=inf_size,
@@ -220,6 +293,13 @@ def main_worker(gpu, args):
             scheduler.step(epoch=start_epoch)
     else:
         scheduler = None
+
+    # test r2 square
+    test_r2_metric = False
+    if test_r2_metric:
+        args.val_every = 1
+        args.max_epochs = start_epoch + 1
+
     accuracy = run_training(
         model=model,
         train_loader=loader[0],
