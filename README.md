@@ -1,67 +1,28 @@
 # Automated 3D Rat Vertebral Body Segmentation in μCT Images with Dilated Swin-UNETR and AUFRC Loss
 
+This repository implements the proposed model in our [paper](vertebral-segmentation.pdf). As we still intend to further develop this project, updates might appear in the future.  
+
 ## Abstract
-We enhance murine vertebral segmentation using Swin-UNETR coupled with Assymmetric Unified Focal loss with density constraint (AUFRC) and dilated attention mechanisms. Our model boosts the semantic segmentation performance of trabecular bone within vertebrae in murine spines, benefiting cancer research. Code for the project is [open-sourced](https://bitbucket.org/OrthopaedicBiomechanicsLab/vertebral-segmentation-rat-l2/src/master/).
-
-## Introduction
-We aim to apply Swin-UNETR, known for its effectiveness in 3D segmentation tasks, to vertebral segmentation in murine spines, creating a high-performance, fully-automated segmentation model.
-
-## Related Work
-Swin Transformer and D-Former are beneficial in image segmentation tasks, especially when handling class-imbalanced medical image segmentation.
-
-## Methods
+We present an advanced approach for murine vertebral segmentation, utilizing Swin-UNETR in combination with Asymmetric Unified Focal loss with ratio constraint (AUFRC) and dilated attention mechanisms. This optimized model improves the performance of semantic segmentation for trabecular bone within vertebrae in murine spines, providing a robust tool for cancer research. For an in-depth understanding of our implementation and a thorough quantitative and qualitative analysis of our work, please refer to the above-mentioned paper.
 
 ### Data Preprocessing and Augmentation
 We focused on L2 vertebral region segmentation from µCT scans of rat spinal vertebral bones. The scans underwent a four-phase preprocessing: data extraction and format conversion, resampling and standardization, image resizing, and dataset validation. Image augmentation techniques were also applied.
 
 ### Model Architecture
-Our model modifies Swin-UNETR by including a dilated attention mechanism and training with asymmetric unified focal loss. An overview of the Dilated Swin-UNETR architecture can be found [here](insert link here).
+Our model modifies Swin-UNETR by including a dilated attention mechanism and training with asymmetric unified focal loss. An overview of the Dilated Swin-UNETR architecture can be found [here](https://arxiv.org/abs/2201.01266).
 
+### Demonstrations
+
+For demonstration purposes, we include these figures from our paper.
+
+![Segmentation-Example](images/figure-4.png)
+![Quantative-Result](images/figure-5.png)
 
 ## Getting Started
 
 ### Requirements
 Dependencies include Python 3.8+, PyTorch 1.9+, torchvision 0.10+, NumPy 1.21+, SciPy 1.7+, SimpleITK 2.0+, Matplotlib 3.4+, Pandas 1.3+, and nibabel 3.2+.
 
-
-## Env Setup
-
-### Compute Canada: Graham
-```
-module load python/3.9.6
-
-python -m venv venv # no conda on compute canada
-source venv/bin/activate
-
-pip install -r requirements.txt # should take a while
-```
-
-### Compute Canada: Mist
-```
-module load anaconda3/2021.05 cuda/11.4.4 gcc/10.3.0
-
-conda create -n vertebral python=3.9
-source activate vertebral
-
-conda config --prepend channels https://ftp.osuosl.org/pub/open-ce/1.7.2/
-conda config --set channel_priority strict
-conda install -c https://ftp.osuosl.org/pub/open-ce/1.7.2/ pytorch=1.12.1 cudatoolkit=11.4 torchvision=0.13.1
-
-pip install -r requirements-mist.txt # should take a while
-```
-
-### Bender
-```
-conda create -n vertebral python=3.9
-conda activate vertebral
-
-pip install -r requirements.txt # for linux
-pip install -r requirements-win.txt # for windows
-
-# Validate cuda installation
-python -c "import torch; print(torch.cuda.device_count());"
-# Should see output 2
-```
 
 ## Prepare data
 
